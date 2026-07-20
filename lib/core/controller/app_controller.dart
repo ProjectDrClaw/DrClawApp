@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -9,7 +9,7 @@ import 'package:flutter_openim_sdk/flutter_openim_sdk.dart' as im;
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:openim/core/im_callback.dart';
+import 'package:drclaw/core/im_callback.dart';
 import 'package:openim_common/openim_common.dart';
 import 'package:sound_mode/sound_mode.dart';
 import 'package:sound_mode/utils/ringer_mode_statuses.dart';
@@ -111,11 +111,11 @@ class AppController extends GetxController with UpgradeManger {
       if (Platform.isAndroid) {
         final id = seq;
 
-        const androidPlatformChannelSpecifics = AndroidNotificationDetails('chat', 'OpenIM Chat',
-            channelDescription: 'OpenIM Chat Message', importance: Importance.max, priority: Priority.high, ticker: 'ticker');
+        const androidPlatformChannelSpecifics = AndroidNotificationDetails('chat', 'Dr.Claw Chat',
+            channelDescription: 'Dr.Claw Chat Message', importance: Importance.max, priority: Priority.high, ticker: 'ticker');
         const NotificationDetails platformChannelSpecifics =
             NotificationDetails(android: androidPlatformChannelSpecifics);
-        await flutterLocalNotificationsPlugin.show(id, 'You have a new message', 'Message：.....', platformChannelSpecifics,
+        await flutterLocalNotificationsPlugin.show(id, '你收到了一条新消息', '消息：.....', platformChannelSpecifics,
             payload: '');
       }
     }

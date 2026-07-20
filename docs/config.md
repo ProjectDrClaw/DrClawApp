@@ -1,8 +1,24 @@
 # 配置说明
 
+- [应用标识](#应用标识)
 - [服务端地址](#服务端地址)
+- [Android 签名](#android-签名)
 - [离线推送](#离线推送)
 - [地图](#地图)
+
+## 应用标识
+
+| 项 | 值 |
+| -- | -- |
+| 展示名 | Dr.Claw |
+| Dart 包名 | `drclaw` |
+| Android / iOS | `com.drclaw.app` |
+
+## Android 签名
+
+1. 复制 `android/app/key.properties.example` 为 `android/app/key.properties`
+2. 填写正式 keystore 信息（该文件已加入 `.gitignore`）
+3. 未配置时会回退到历史上游 demo 签名，仅供本地调试
 
 ## 服务端地址
 

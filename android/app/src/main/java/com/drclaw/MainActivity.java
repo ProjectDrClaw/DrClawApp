@@ -1,4 +1,4 @@
-package io.openim;
+package com.drclaw;
 
 import io.flutter.embedding.android.FlutterFragmentActivity;
 

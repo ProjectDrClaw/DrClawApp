@@ -5,8 +5,14 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('app/key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace "io.openim"
+    namespace "com.drclaw"
     compileSdk 35
     ndkVersion "27.0.12077973"
 
@@ -21,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "io.openim.flutter.demo"
+        applicationId "com.drclaw.app"
         minSdk 23
         targetSdk 33
         versionCode flutter.versionCode
@@ -33,10 +39,18 @@ android {
 
     signingConfigs {
         release {
-            keyAlias 'openim'
-            keyPassword 'openim'
-            storeFile file('./openim')
-            storePassword 'openim'
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+                storePassword keystoreProperties['storePassword']
+            } else {
+                // 本地调试回退：历史上游 demo 签名，正式发布前请配置 key.properties
+                keyAlias 'openim'
+                keyPassword 'openim'
+                storeFile file('./openim')
+                storePassword 'openim'
+            }
         }
     }
 

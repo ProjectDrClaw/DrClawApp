@@ -78,12 +78,12 @@
 
     <application
         android:icon="@mipmap/ic_launcher"
-        android:label="F-DEMO"
+        android:label="Dr.Claw"
         android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"
         tools:replace="android:label">
         <activity
-            android:name="io.openim.MainActivity"
+            android:name="com.drclaw.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
             android:hardwareAccelerated="true"

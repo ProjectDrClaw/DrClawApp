@@ -16,7 +16,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>F-DEMO</string>
+	<string>Dr.Claw</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -74,7 +74,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>请点击“好”以允许访问。若不允许，你将无法给好友发送或者上传本地相册图片及视频内容。</string>
 	<key>RTCAppGroupIdentifier</key>
-	<string>group.cn.rentsoft.openim.flutter.rtc</string>
+	<string>group.com.drclaw.app.rtc</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

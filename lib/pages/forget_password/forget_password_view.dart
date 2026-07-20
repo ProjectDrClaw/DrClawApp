@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:openim/pages/login/login_logic.dart';
-import 'package:openim/widgets/register_page_bg.dart';
+import 'package:drclaw/pages/login/login_logic.dart';
+import 'package:drclaw/widgets/register_page_bg.dart';
 import 'package:openim_common/openim_common.dart';
 
 import 'forget_password_logic.dart';

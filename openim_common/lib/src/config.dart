@@ -61,8 +61,8 @@ class Config {
         iOSPushSound: 'default',
       );
 
-  static const friendScheme = "io.openim.app/addFriend/";
-  static const groupScheme = "io.openim.app/joinGroup/";
+  static const friendScheme = "com.drclaw.app/addFriend/";
+  static const groupScheme = "com.drclaw.app/joinGroup/";
 
   static const _host = "your-server-ip or your-domain";
 

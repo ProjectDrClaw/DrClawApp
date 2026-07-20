@@ -1,7 +1,7 @@
-import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
+﻿import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:get/get.dart';
-import 'package:openim/pages/contacts/add_by_search/add_by_search_logic.dart';
-import 'package:openim/routes/app_navigator.dart';
+import 'package:drclaw/pages/contacts/add_by_search/add_by_search_logic.dart';
+import 'package:drclaw/routes/app_navigator.dart';
 
 class AddContactsMethodLogic extends GetxController {
   

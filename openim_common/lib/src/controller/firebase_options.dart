@@ -50,6 +50,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '299075855003',
     projectId: 'im-fer-c3347',
     storageBucket: 'im-fer-c3347.firebasestorage.app',
-    iosBundleId: 'io.openim.flutter.full.NotificationService',
+    iosBundleId: 'com.drclaw.app',
   );
 }
