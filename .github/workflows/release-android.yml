@@ -53,12 +53,12 @@ jobs:
             echo "  ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_ALIAS / ANDROID_STORE_PASSWORD / ANDROID_KEY_PASSWORD"
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/drclaw-release.jks
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/drclaw.jks
           printf '%s\n' \
             "storePassword=${ANDROID_STORE_PASSWORD}" \
             "keyPassword=${ANDROID_KEY_PASSWORD}" \
             "keyAlias=${ANDROID_KEY_ALIAS}" \
-            "storeFile=drclaw-release.jks" \
+            "storeFile=drclaw.jks" \
             > android/app/key.properties
 
       - name: 构建 APK

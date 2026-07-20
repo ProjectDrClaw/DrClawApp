@@ -51,7 +51,9 @@ app.*.map.json
 **/android/key.properties
 **/android/**/key.properties
 *.jks
+*.jks.bak*
 *.keystore
+*.keystore.bak*
 !android/app/key.properties.example
 
 # iOS/XCode related

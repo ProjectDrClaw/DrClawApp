@@ -39,16 +39,25 @@ IP 模式默认端口：
 
 ## Android 签名
 
-1. 复制 `android/app/key.properties.example` → `android/app/key.properties`
-2. 准备 `drclaw-release.jks`（或自有 keystore）
-3. 填写别名与密码
+开发版（debug/profile）与正式版（release）**使用同一套正式证书**，避免覆盖安装时签名不一致。
 
-`key.properties` 与 `*.jks` 已加入 `.gitignore`，**勿提交**。
+| 项 | 值 |
+| -- | -- |
+| 证书文件 | `android/app/drclaw.jks`（本地，勿提交） |
+| 配置文件 | `android/app/key.properties`（本地，勿提交） |
+| 别名 | `drclaw` |
+| 算法 | RSA 2048 / SHA256withRSA / PKCS12 |
+| 有效期 | 36500 天 |
+| SHA-1 | `1B:2F:F2:61:16:9F:D1:30:3E:80:99:5D:FD:9C:96:0C:18:D4:7B:2E` |
+| SHA-256 | `20:B8:D0:A4:32:7C:B9:83:46:C7:07:38:E4:A5:F2:5C:65:33:CA:BF:DC:16:E6:21:B8:52:60:D1:AF:25:D4:F5` |
 
-| 构建类型 | 行为 |
-| -------- | ---- |
-| debug | 使用 Android 默认 debug 签名 |
-| release | 必须有 `key.properties`，否则构建失败 |
+本地首次配置：
+
+1. 向同事索取或自行保管 `drclaw.jks` + `key.properties`（勿入库）
+2. 放到 `android/app/` 下
+3. 也可参考 `key.properties.example` 重新生成（**重新生成后需全员更换，且无法覆盖旧签名安装包**）
+
+> 请务必备份 `drclaw.jks` 与密码；证书丢失将无法发布同包名升级包。
 
 ### GitHub Release 自动打包
 
@@ -58,8 +67,8 @@ IP 模式默认端口：
 
 | Secret | 说明 |
 | ------ | ---- |
-| `ANDROID_KEYSTORE_BASE64` | `drclaw-release.jks` 的 base64（`base64 -w0 drclaw-release.jks`） |
-| `ANDROID_KEY_ALIAS` | 别名，如 `drclaw` |
+| `ANDROID_KEYSTORE_BASE64` | `drclaw.jks` 的 base64（`certutil -encode` 或 `base64 -w0 drclaw.jks`） |
+| `ANDROID_KEY_ALIAS` | `drclaw` |
 | `ANDROID_STORE_PASSWORD` | keystore 密码 |
 | `ANDROID_KEY_PASSWORD` | key 密码 |
 

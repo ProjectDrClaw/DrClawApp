@@ -38,34 +38,29 @@ android {
     }
 
     signingConfigs {
-        release {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-                storePassword keystoreProperties['storePassword']
+        // 开发版与正式版使用同一套正式签名证书
+        drclaw {
+            if (!keystorePropertiesFile.exists()) {
+                throw new GradleException(
+                    "缺少 android/app/key.properties。请复制 key.properties.example 并配置正式证书 drclaw.jks。"
+                )
             }
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
         }
     }
 
     buildTypes {
         debug {
-            // 无 key.properties 时使用 Android 默认 debug 签名
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.drclaw
         }
         profile {
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.drclaw
         }
         release {
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            } else {
-                throw new GradleException("缺少 android/app/key.properties，请复制 key.properties.example 并配置正式签名。")
-            }
+            signingConfig signingConfigs.drclaw
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
