@@ -57,18 +57,14 @@ IP 模式默认端口：
 
 ### GitHub Release 自动打包
 
-工作流 [`.github/workflows/release-android.yml`](../.github/workflows/release-android.yml) **仅在发布 Release 或手动触发时**构建 APK，日常 push/PR 不执行。
+工作流 [`.github/workflows/release-android.yml`](../.github/workflows/release-android.yml)：
 
-在仓库 **Settings → Secrets and variables → Actions** 配置：
+- **触发：** 发布 GitHub Release，或 Actions 里手动 Run workflow  
+- **日常 push/PR 不执行**
+- **签名：** 直接使用仓库内 `drclaw.jks` + `key.properties`（无需再配 Secrets）
+- **产物：** 上传为 Actions Artifact；若由 Release 触发，同时附加到该 Release
 
-| Secret | 说明 |
-| ------ | ---- |
-| `ANDROID_KEYSTORE_BASE64` | `drclaw.jks` 的 base64（`certutil -encode` 或 `base64 -w0 drclaw.jks`） |
-| `ANDROID_KEY_ALIAS` | `drclaw` |
-| `ANDROID_STORE_PASSWORD` | keystore 密码 |
-| `ANDROID_KEY_PASSWORD` | key 密码 |
-
-发布后 APK 会上传到该 Release 附件，并保留一份 Actions Artifact。
+手动触发时可选择 `ENV=prod|dev`。
 
 ## 品牌资源
 
