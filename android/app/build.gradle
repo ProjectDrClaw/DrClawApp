@@ -22,7 +22,7 @@ android {
         coreLibraryDesugaringEnabled true
     }
 
-    kotlinOptions { 
+    kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
@@ -44,27 +44,33 @@ android {
                 keyPassword keystoreProperties['keyPassword']
                 storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
                 storePassword keystoreProperties['storePassword']
-            } else {
-                // 本地调试回退：历史上游 demo 签名，正式发布前请配置 key.properties
-                keyAlias 'openim'
-                keyPassword 'openim'
-                storeFile file('./openim')
-                storePassword 'openim'
             }
         }
     }
 
     buildTypes {
-        debug { signingConfig signingConfigs.release }
-        profile { signingConfig signingConfigs.release }
+        debug {
+            // 无 key.properties 时使用 Android 默认 debug 签名
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+        profile {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
         release {
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                throw new GradleException("缺少 android/app/key.properties，请复制 key.properties.example 并配置正式签名。")
+            }
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
 
     lint {
         disable 'InvalidPackage'
@@ -82,8 +88,4 @@ dependencies {
     // Firebase
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
-}
-
-static def buildTime() {
-    return new Date().format("MMddHHmm", TimeZone.getTimeZone("GMT+08:00"))
 }

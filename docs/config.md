@@ -17,8 +17,14 @@
 ## Android 签名
 
 1. 复制 `android/app/key.properties.example` 为 `android/app/key.properties`
-2. 填写正式 keystore 信息（该文件已加入 `.gitignore`）
-3. 未配置时会回退到历史上游 demo 签名，仅供本地调试
+2. 使用 `keytool` 生成 `drclaw-release.jks`（或沿用本地已有 keystore）
+3. 在 `key.properties` 中填写密码与别名（`key.properties` / `*.jks` 已加入 `.gitignore`，勿提交）
+
+说明：
+
+- **debug**：无 `key.properties` 时使用 Android 默认 debug 签名；有配置时使用 release keystore
+- **release**：必须存在 `key.properties`，否则构建失败
+- 本地开发机可保留自己的 `key.properties` 与 jks，勿把密码写进仓库
 
 ## 服务端地址
 

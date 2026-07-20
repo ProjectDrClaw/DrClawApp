@@ -52,9 +52,7 @@ app.*.map.json
 **/android/**/key.properties
 *.jks
 *.keystore
-# 保留示例与历史 demo 签名文件（仅本地调试，上线前请替换）
 !android/app/key.properties.example
-!android/app/openim
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
