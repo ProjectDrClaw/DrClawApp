@@ -45,7 +45,7 @@ flutter run --dart-define=ENV=dev
 flutter run --dart-define=ENV=prod --dart-define=SERVER_HOST=your-domain
 ```
 
-Android 签名（开发/正式同一证书）见 [docs/config.md](./docs/config.md)；本地需 `android/app/drclaw.jks` + `key.properties`（勿提交）。
+Android 签名（开发/正式同一证书，已入库）见 [docs/config.md](./docs/config.md)。**仓库请保持私有。**
 
 ## 构建
 

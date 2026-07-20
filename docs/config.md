@@ -43,21 +43,17 @@ IP 模式默认端口：
 
 | 项 | 值 |
 | -- | -- |
-| 证书文件 | `android/app/drclaw.jks`（本地，勿提交） |
-| 配置文件 | `android/app/key.properties`（本地，勿提交） |
+| 证书文件 | `android/app/drclaw.jks`（已入库，团队共用） |
+| 配置文件 | `android/app/key.properties`（已入库，团队共用） |
 | 别名 | `drclaw` |
 | 算法 | RSA 2048 / SHA256withRSA / PKCS12 |
 | 有效期 | 36500 天 |
 | SHA-1 | `1B:2F:F2:61:16:9F:D1:30:3E:80:99:5D:FD:9C:96:0C:18:D4:7B:2E` |
 | SHA-256 | `20:B8:D0:A4:32:7C:B9:83:46:C7:07:38:E4:A5:F2:5C:65:33:CA:BF:DC:16:E6:21:B8:52:60:D1:AF:25:D4:F5` |
 
-本地首次配置：
+克隆仓库后即可直接 `flutter run` / `flutter build apk`，开发与正式构建使用同一签名。
 
-1. 向同事索取或自行保管 `drclaw.jks` + `key.properties`（勿入库）
-2. 放到 `android/app/` 下
-3. 也可参考 `key.properties.example` 重新生成（**重新生成后需全员更换，且无法覆盖旧签名安装包**）
-
-> 请务必备份 `drclaw.jks` 与密码；证书丢失将无法发布同包名升级包。
+> **安全：** 证书与密码随仓库分发，仓库必须保持**私有**。若曾公开过，请立即轮换证书。仍建议另地备份 `drclaw.jks`。
 
 ### GitHub Release 自动打包
 

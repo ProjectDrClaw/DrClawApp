@@ -48,12 +48,15 @@ app.*.map.json
 **/android/captures/
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+# 签名证书：默认忽略，但放行团队统一正式证书（仓库须私有）
+*.jks
+*.keystore
+*.jks.bak*
+*.keystore.bak*
 **/android/key.properties
 **/android/**/key.properties
-*.jks
-*.jks.bak*
-*.keystore
-*.keystore.bak*
+!android/app/drclaw.jks
+!android/app/key.properties
 !android/app/key.properties.example
 
 # iOS/XCode related
