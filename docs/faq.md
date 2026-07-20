@@ -2,25 +2,42 @@
 
 ### 1. 是否支持多语言？
 
-支持，默认跟随系统语言（当前含中文、英文）。
+支持，默认跟随系统语言（中文、英文）。
 
 ### 2. 支持哪些平台？
 
 目前支持 Android 与 iOS。
 
-### 3. Android debug 可运行，release 白屏？
+### 3. 如何切换开发 / 生产环境？
 
-Release 默认开启混淆/压缩。可尝试：
+```bash
+flutter run --dart-define=ENV=dev
+flutter run --dart-define=ENV=prod --dart-define=SERVER_HOST=your-domain
+```
+
+详见 [config.md](./config.md#多环境服务端)。
+
+### 4. 连不上 `10.110.177.132`？
+
+确认本机已切换到可访问该内网的网络，且服务端已监听 `10001/10002/10008/10009`。
+
+### 5. Android release 构建报缺少 key.properties？
+
+按 [config.md](./config.md#android-签名) 配置本地签名；`key.properties` 不要提交到 Git。
+
+### 6. Android debug 可运行，release 白屏？
+
+可尝试：
 
 ```bash
 flutter build apk --no-shrink
 ```
 
-或在 `android/app/build.gradle` 的 `release` 中关闭压缩（按项目实际 Gradle 写法调整）。
+或按 `android/app/build.gradle` 中 release 配置关闭压缩。
 
-### 4. 必须开启混淆时怎么办？
+### 7. 必须开启混淆时怎么办？
 
-在混淆规则中保留 OpenIM SDK 相关类，例如：
+保留 OpenIM SDK 相关类，例如：
 
 ```proguard
 -keep class io.openim.**{*;}
@@ -28,29 +45,29 @@ flutter build apk --no-shrink
 -keep class open_im_sdk_callback.**{*;}
 ```
 
-### 5. Android 安装包无法安装到模拟器？
+### 8. Android 包装不到模拟器？
 
-工程可能过滤了部分 ABI。若需在模拟器运行，在 NDK `abiFilters` 中按需加入架构（如 `x86_64`），以 `android/app/build.gradle` 现有配置为准。
+工程默认 `abiFilters` 含 `arm64-v8a`、`x86_64`。若仍失败，按模拟器架构调整 `android/app/build.gradle`。
 
-### 6. iOS release / Archive 报错？
+### 9. iOS release / Archive 报错？
 
-将架构设置为 arm64，然后：
+架构设为 arm64，然后：
 
 ```bash
-flutter clean
-flutter pub get
-cd ios
-rm -f Podfile.lock
-rm -rf Pods
-pod install
+flutter clean && flutter pub get
+cd ios && rm -f Podfile.lock && rm -rf Pods && pod install
 ```
 
 连接真机后再 Archive。
 
-### 7. iOS 最低版本？
+### 10. iOS 最低版本？
 
 13.0
 
-### 8. 地图或离线推送不可用？
+### 11. 地图或离线推送不可用？
 
-见 [配置说明](./config.md)。
+见 [config.md](./config.md) 中对应章节；默认仍为占位配置。
+
+### 12. 如何更新应用图标？
+
+替换 `launcher_icon/` 下源图后执行图标与启动图生成命令，见 [config.md](./config.md#品牌资源)。

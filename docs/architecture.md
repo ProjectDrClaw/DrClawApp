@@ -1,64 +1,65 @@
 # 工程结构与技术栈
 
-## 应用标识
-
-| 标识 | 值 |
-| ---- | -- |
-| 展示名 | Dr.Claw |
-| Dart 包名 | `drclaw` |
-| Android / iOS 应用 ID | `com.drclaw.app` |
-| 版本 | `0.1.0+1` |
-
 ## 技术栈
 
 | 类别 | 选型 |
 | ---- | ---- |
 | 框架 | Flutter / Dart（SDK `>=3.6.0 <4.0.0`） |
-| 状态管理 / 路由 | GetX |
+| 状态管理 / 路由 | GetX（`*_view` / `*_logic` / `*_binding`） |
 | IM SDK | `flutter_openim_sdk` |
 | 网络 | Dio |
 | 本地存储 | Hive、SharedPreferences |
 | 音视频 | LiveKit（`openim_live`） |
 | 推送 | 个推 / FCM |
+| 多环境 | `--dart-define=ENV` / `SERVER_HOST`（`EnvConfig`） |
 
-页面按 GetX 约定拆分为 `*_view.dart` / `*_logic.dart` / `*_binding.dart`。
+本地模块名仍为 `openim_common` / `openim_live`（与 SDK 命名一致，暂不重命名）。
 
 ## 目录结构
 
 ```
 DrClawAppFlutter/
 ├── lib/                 # 主应用：页面、路由、IM 控制器
-├── openim_common/       # 公共层：Config、API、组件、多语言、推送
-├── openim_live/         # 一对一音视频通话
-├── local_plugin/        # 本地插件（如来电提醒）
+├── openim_common/       # 公共层：EnvConfig、Config、API、组件、多语言、推送
+├── openim_live/         # 一对一音视频
+├── local_plugin/        # 本地插件（来电提醒等）
+├── launcher_icon/       # 品牌图标 / 启动图源文件
 ├── android/ / ios/      # 原生工程
-└── docs/                # 项目文档
+├── docs/                # 文档
+└── .github/workflows/   # CI（flutter analyze）
 ```
 
-### `lib/` 主要模块
+### 主应用 `lib/`
 
 | 路径 | 作用 |
 | ---- | ---- |
-| `main.dart` / `app.dart` | 入口与 `ChatApp` 初始化 |
-| `openim_common/.../env_config.dart` | 多环境 host（`ENV` / `SERVER_HOST`） |
-| `core/` | `IMController`、`AppController` 等 |
-| `routes/` | 路由表与导航封装 |
+| `main.dart` / `app.dart` | 入口与 `ChatApp` |
+| `core/` | `IMController`、`AppController` |
+| `routes/` | 路由与导航 |
 | `pages/splash/` | 启动与自动登录 |
-| `pages/login/`、`register/`、`forget_password/` | 账号流程 |
-| `pages/home/` | 首页 Tab 壳 |
-| `pages/conversation/` | 会话列表 |
+| `pages/login/`、`register/`、`forget_password/` | 账号 |
+| `pages/home/` | 首页 Tab |
+| `pages/conversation/` | 会话 |
 | `pages/chat/` | 聊天与群设置 |
-| `pages/contacts/` | 通讯录、好友/群 |
-| `pages/mine/` | 我的、设置 |
+| `pages/contacts/` | 通讯录 |
+| `pages/mine/` | 我的 |
 | `pages/global_search/` | 全局搜索 |
+
+### 公共模块要点
+
+| 路径 | 作用 |
+| ---- | ---- |
+| `openim_common/.../env_config.dart` | 环境与默认 host |
+| `openim_common/.../config.dart` | 运行时 URL、推送文案、地图 Key 等 |
+| `openim_common/.../apis.dart` | REST API |
 
 ## 启动流程
 
-1. `main.dart` → `Config.init`（存储、Hive、Http 等）
+1. `main` → `Config.init`（存储、Hive、Http 等）
 2. `ChatApp` 注入 `IMController` / `PushController` / `CacheController`
-3. 启动页根据本地 token 自动登录或进入登录页
-4. 登录成功后进入首页（会话 / 通讯录 / 我的）
+3. 启动页：有 token 则自动登录，否则进登录页
+4. 首页：会话 / 通讯录 / 我的
 
-## 相关配置
+## 相关文档
 
-服务端地址、推送与地图 Key 见 [config.md](./config.md)。
+配置细节见 [config.md](./config.md)；问题排查见 [faq.md](./faq.md)。

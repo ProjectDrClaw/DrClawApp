@@ -1,92 +1,64 @@
 # DrClawAppFlutter
 
-Dr.Claw 客户端（Flutter）。当前基于 OpenIM Flutter Demo 改造，面向 Android / iOS。
+Dr.Claw Flutter 客户端（Android / iOS）。基于 [OpenIM Flutter Demo](https://github.com/openimsdk/openim-flutter-demo) **v3.8.3+235**（`flutter_openim_sdk` `^3.8.3+hotfix.12`，上游提交 `06480b8`）改造。
 
-仓库地址：https://github.com/9999-12-31/DrClawAppFlutter.git
+仓库：https://github.com/9999-12-31/DrClawAppFlutter.git
 
-**上游基线：** [OpenIM Flutter Demo](https://github.com/openimsdk/openim-flutter-demo) **v3.8.3+235**（对应 `flutter_openim_sdk` `^3.8.3+hotfix.12`，上游提交 `06480b8`）。
-
-| 标识 | 值 |
-| ---- | -- |
+| 项 | 值 |
+| -- | -- |
 | 展示名 | Dr.Claw |
 | Dart 包名 | `drclaw` |
-| Android `applicationId` | `com.drclaw.app` |
-| iOS Bundle ID | `com.drclaw.app` |
-| 应用版本 | `0.1.0+1` |
+| 应用 ID | `com.drclaw.app` |
+| 版本 | `0.1.0+1` |
+| 品牌色 | `#1d5db0` |
 
-> 本地模块 `openim_common` / `openim_live` 与第三方 SDK 包名暂未重命名；Firebase / 推送需换成自有配置后方可正式使用。  
-> Android 正式签名请配置本地 `android/app/key.properties`（勿提交）。  
-> 图标/启动图与 `DrClawApp`（Expo）对齐，源文件在 `launcher_icon/`，品牌色 `#1d5db0`。
-
-## 文档索引
+## 文档
 
 | 文档 | 说明 |
 | ---- | ---- |
 | [docs/architecture.md](./docs/architecture.md) | 工程结构与技术栈 |
-| [docs/config.md](./docs/config.md) | 服务端、推送、地图等配置 |
+| [docs/config.md](./docs/config.md) | 多环境、签名、图标、推送、地图 |
 | [docs/faq.md](./docs/faq.md) | 常见问题 |
+| [docs/README.md](./docs/README.md) | 文档索引与上线检查清单 |
 
-## 开发环境
+## 环境要求
 
-- **Flutter**：3.32.8（建议与此版本对齐）
-- **JDK**：17
-- **Android**：Android Studio + minSdk 23
-- **iOS**：Xcode，最低系统版本 13.0（需 macOS）
-- **服务端**：需自行部署可用的 OpenIM Server（或后续 Dr.Claw 后端）
-
-Windows 可进行 Android 开发；iOS 构建需在 macOS 完成。
+- Flutter **3.32.8**、JDK **17**
+- Android：minSdk **23**
+- iOS：13.0+（需 macOS + Xcode）
+- 可用的 OpenIM Server（开发环境默认内网地址见下方）
 
 ## 快速开始
-
-1. 克隆仓库
 
 ```bash
 git clone https://github.com/9999-12-31/DrClawAppFlutter.git
 cd DrClawAppFlutter
-```
-
-2. 安装依赖
-
-```bash
-flutter clean
 flutter pub get
+
+# 开发环境（默认 ENV=dev，host=10.110.177.132）
+flutter run --dart-define=ENV=dev
 ```
 
-3. 运行（多环境）
+切换生产或临时改 host：
 
 ```bash
-# 开发环境（默认，host=10.110.177.132）
-flutter run --dart-define=ENV=dev
-
-# 生产环境（需先在 env_config.dart 填写 prodHost，或临时覆盖）
-flutter run --dart-define=ENV=prod --dart-define=SERVER_HOST=your-prod-domain
+flutter run --dart-define=ENV=prod --dart-define=SERVER_HOST=your-domain
 ```
 
-完整端口与推送/地图配置见 [配置说明](./docs/config.md)。
+Android 正式签名见 [docs/config.md](./docs/config.md)；本地需自行准备 `android/app/key.properties`（勿提交）。
 
 ## 构建
 
 ```bash
-# Android
-flutter build apk
-
-# iOS（需 macOS）
-flutter build ipa
+flutter build apk                                    # Android
+flutter build apk --dart-define=ENV=prod             # 指定环境
+flutter build ipa --dart-define=ENV=prod             # iOS，需 macOS
 ```
 
-产物位于 `build/` 目录。
+## 能力概览
 
-## 当前能力概览
+账号、好友/黑名单、群组、多类型消息与会话、一对一音视频（LiveKit）、推送（个推/FCM，需自备 Key）。
 
-| 模块 | 说明 |
-| ---- | ---- |
-| 账号 | 手机/邮箱注册登录、验证码、忘记密码、资料与多语言 |
-| 好友 / 黑名单 | 申请、搜索、备注、黑名单 |
-| 群组 | 建群、成员管理、转让、进群审批等 |
-| 消息 / 会话 | 多类型消息、置顶、免打扰、已读等 |
-| 音视频 | 一对一通话（LiveKit，需服务端配置） |
-| 推送 | 个推 / FCM（需自行配置 Key） |
+## 许可
 
-## 授权许可
-
-本仓库采用 [MIT License](./LICENSE)。Copyright (c) 2026 Dr.Claw。
+[MIT License](./LICENSE)。Copyright (c) 2026 Dr.Claw。
