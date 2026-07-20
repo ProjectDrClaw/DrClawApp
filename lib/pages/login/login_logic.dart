@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-
 import '../../core/controller/im_controller.dart';
 import '../../routes/app_navigator.dart';
 import '../conversation/conversation_logic.dart';
@@ -66,7 +64,6 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   final enabled = false.obs;
   final areaCode = "+86".obs;
   final isPasswordLogin = true.obs;
-  final versionInfo = ''.obs;
   final loginType = LoginType.phone.obs;
   String? get email => loginType.value == LoginType.email ? phoneCtrl.text.trim() : null;
   String? get phone => loginType.value == LoginType.phone ? phoneCtrl.text.trim() : null;
@@ -143,12 +140,6 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
     phoneCtrl.clear();
     pwdCtrl.clear();
     verificationCodeCtrl.clear();
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
-    getPackageInfo();
   }
 
   _onChanged() {
@@ -271,13 +262,4 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   void registerNow() => AppNavigator.startRegister();
 
   void forgetPassword() => AppNavigator.startForgetPassword();
-
-  void getPackageInfo() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    final version = packageInfo.version;
-    final appName = packageInfo.appName;
-    final buildNumber = packageInfo.buildNumber;
-
-    versionInfo.value = '$appName $version+$buildNumber SDK: ${OpenIM.version}';
-  }
 }

@@ -58,8 +58,6 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
               ),
-              32.verticalSpace,
-              Obx(() => logic.versionInfo.value.toText..style = Styles.ts_0C1C33_14sp),
             ],
           ),
         ),
