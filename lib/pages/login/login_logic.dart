@@ -73,12 +73,12 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   String? get account => loginType.value == LoginType.account ? phoneCtrl.text.trim() : null;
   LoginType operateType = LoginType.phone;
 
-  FocusNode? accountFocus = FocusNode();
-  FocusNode? pwdFocus = FocusNode();
+  final accountFocus = FocusNode();
+  final pwdFocus = FocusNode();
 
   late TabController tabController;
 
-  _initData() async {
+  void _initData() {
     var map = DataSp.getLoginAccount();
     if (map is Map) {
       String? phoneNumber = map["phoneNumber"];
@@ -94,14 +94,29 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
 
     loginType.value = LoginType.fromRawValue(DataSp.getLoginType());
     operateType = loginType.value;
-    tabController.index = loginType.value.rawValue;
+    if (!isClosed && tabController.index != loginType.value.rawValue) {
+      tabController.index = loginType.value.rawValue;
+    }
+  }
+
+  void _unfocus() {
+    accountFocus.unfocus();
+    pwdFocus.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
   void onClose() {
+    _unfocus();
+    phoneCtrl.removeListener(_onChanged);
+    pwdCtrl.removeListener(_onChanged);
+    verificationCodeCtrl.removeListener(_onChanged);
+    tabController.removeListener(_onTabChanged);
     phoneCtrl.dispose();
     pwdCtrl.dispose();
     verificationCodeCtrl.dispose();
+    accountFocus.dispose();
+    pwdFocus.dispose();
     tabController.dispose();
     super.onClose();
   }
@@ -109,11 +124,25 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   @override
   void onInit() {
     tabController = TabController(length: 3, vsync: this);
+    // 先恢复本地登录类型再挂监听，避免初始化切 index 时清空已回填账号
     _initData();
+    tabController.addListener(_onTabChanged);
     phoneCtrl.addListener(_onChanged);
     pwdCtrl.addListener(_onChanged);
     verificationCodeCtrl.addListener(_onChanged);
     super.onInit();
+  }
+
+  void _onTabChanged() {
+    if (tabController.indexIsChanging) return;
+    final type = LoginType.fromRawValue(tabController.index);
+    if (loginType.value == type) return;
+    loginType.value = type;
+    operateType = type;
+    _unfocus();
+    phoneCtrl.clear();
+    pwdCtrl.clear();
+    verificationCodeCtrl.clear();
   }
 
   @override
@@ -132,6 +161,7 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   }
 
   login() {
+    _unfocus();
     DataSp.putLoginType(loginType.value.rawValue);
     LoadingView.singleton.wrap(asyncFunction: () async {
       var suc = await _login();

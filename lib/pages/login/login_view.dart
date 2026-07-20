@@ -68,7 +68,9 @@ class LoginPage extends StatelessWidget {
   }
 
   Widget _buildInputView() {
-    return Container(
+    // 不使用 TabBarView：三个页共用同一组 Controller 时，Tab 动画重建会触发
+    // tabs.dart _DragAnimation / TextEditingController dispose 相关异常。
+    return SizedBox(
       height: 240.h,
       width: 300.w,
       child: Column(
@@ -83,26 +85,18 @@ class LoginPage extends StatelessWidget {
             labelPadding: const EdgeInsets.only(right: 16),
             overlayColor: WidgetStateProperty.all(Colors.transparent),
             dividerHeight: 0.1,
-            onTap: (index) {
-              logic.loginType.value = LoginType.fromRawValue(index);
-              logic.operateType = logic.loginType.value;
-              FocusScope.of(Get.context!).unfocus();
-              logic.phoneCtrl.clear();
-              logic.pwdCtrl.clear();
+            onTap: (_) {
+              FocusManager.instance.primaryFocus?.unfocus();
             },
           ),
           Flexible(
-            child: Obx(
-              () => TabBarView(
-                controller: logic.tabController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildInputView1(LoginType.phone),
-                  _buildInputView1(LoginType.email),
-                  _buildInputView2(LoginType.account),
-                ],
-              ),
-            ),
+            child: Obx(() {
+              final type = logic.loginType.value;
+              if (type == LoginType.account) {
+                return _buildInputView2(type);
+              }
+              return _buildInputView1(type);
+            }),
           ),
         ],
       ),
