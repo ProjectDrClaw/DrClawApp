@@ -25,8 +25,10 @@
 修改 `openim_common/lib/src/config.dart` 中的 `_host`：
 
 ```dart
-static const _host = "your-server-ip or your-domain";
+static const _host = "10.110.177.132";
 ```
+
+> 当前开发环境默认已指向该地址；若需切换环境，直接修改 `_host` 或通过应用内服务端配置覆盖。
 
 默认端口（未改服务端时）：
 

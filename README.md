@@ -55,10 +55,10 @@ flutter pub get
 编辑 `openim_common/lib/src/config.dart`：
 
 ```dart
-static const _host = "your-server-ip or your-domain";
+static const _host = "10.110.177.132";
 ```
 
-未改服务端默认端口时，一般只需改 `_host`。完整端口与推送/地图配置见 [配置说明](./docs/config.md)。
+当前开发环境已配置为上述地址。完整端口与推送/地图配置见 [配置说明](./docs/config.md)。
 
 4. 运行
 

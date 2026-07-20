@@ -64,7 +64,7 @@ class Config {
   static const friendScheme = "com.drclaw.app/addFriend/";
   static const groupScheme = "com.drclaw.app/joinGroup/";
 
-  static const _host = "your-server-ip or your-domain";
+  static const _host = "10.110.177.132";
 
   static const _ipRegex = '((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)';
 
