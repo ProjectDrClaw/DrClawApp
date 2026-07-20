@@ -3,6 +3,7 @@ library openim_common;
 export 'src/apis.dart';
 export 'src/bridge/package_bridge.dart';
 export 'src/config.dart';
+export 'src/env_config.dart';
 export 'src/controller/cache_controller.dart';
 export 'src/extension/custom_ext.dart';
 export 'src/extension/message_manager.dart';

@@ -64,63 +64,68 @@ class Config {
   static const friendScheme = "com.drclaw.app/addFriend/";
   static const groupScheme = "com.drclaw.app/joinGroup/";
 
-  static const _host = "10.110.177.132";
+  static const _ipRegex =
+      '((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)';
 
-  static const _ipRegex = '((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)';
+  static bool _isIP(String host) => RegExp(_ipRegex).hasMatch(host);
 
-  static bool get _isIP => RegExp(_ipRegex).hasMatch(_host);
-
+  /// 当前生效的服务端 host：应用内配置 > 编译期环境配置
   static String get serverIp {
-    String? ip;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      ip = server['serverIP'];
+    final server = DataSp.getServerConfig();
+    final ip = server?['serverIP'] as String?;
+    if (ip != null && ip.isNotEmpty) {
+      return ip;
     }
-    return ip ?? _host;
+    return EnvConfig.host;
   }
 
   static String get chatTokenUrl {
-    String? url;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      url = server['chatTokenUrl'];
+    final server = DataSp.getServerConfig();
+    final url = server?['chatTokenUrl'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url;
     }
-    return url ?? (_isIP ? "http://$_host:10009" : "https://$_host/chat");
+    final host = serverIp;
+    return _isIP(host) ? "http://$host:10009" : "https://$host/chat";
   }
 
   static String get appAuthUrl {
-    String? url;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      url = server['authUrl'];
+    final server = DataSp.getServerConfig();
+    final url = server?['authUrl'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url;
     }
-    return url ?? (_isIP ? "http://$_host:10008" : "https://$_host/chat");
+    final host = serverIp;
+    return _isIP(host) ? "http://$host:10008" : "https://$host/chat";
   }
 
   static String get imApiUrl {
-    String? url;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      url = server['apiUrl'];
+    final server = DataSp.getServerConfig();
+    final url = server?['apiUrl'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url;
     }
-    return url ?? (_isIP ? 'http://$_host:10002' : "https://$_host/api");
+    final host = serverIp;
+    return _isIP(host) ? 'http://$host:10002' : "https://$host/api";
   }
 
   static String get imWsUrl {
-    String? url;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      url = server['wsUrl'];
+    final server = DataSp.getServerConfig();
+    final url = server?['wsUrl'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url;
     }
-    return url ?? (_isIP ? "ws://$_host:10001" : "wss://$_host/msg_gateway");
+    final host = serverIp;
+    return _isIP(host) ? "ws://$host:10001" : "wss://$host/msg_gateway";
   }
 
   static int get logLevel {
-    String? level;
-    var server = DataSp.getServerConfig();
-    if (null != server) {
-      level = server['logLevel'];
+    final server = DataSp.getServerConfig();
+    final level = server?['logLevel'] as String?;
+    // 生产环境默认少打日志
+    if (level == null) {
+      return EnvConfig.isProd ? 3 : 5;
     }
-    return level == null ? 5 : int.parse(level);
+    return int.parse(level);
   }
 }

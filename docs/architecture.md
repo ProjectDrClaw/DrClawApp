@@ -40,6 +40,7 @@ DrClawAppFlutter/
 | 路径 | 作用 |
 | ---- | ---- |
 | `main.dart` / `app.dart` | 入口与 `ChatApp` 初始化 |
+| `openim_common/.../env_config.dart` | 多环境 host（`ENV` / `SERVER_HOST`） |
 | `core/` | `IMController`、`AppController` 等 |
 | `routes/` | 路由表与导航封装 |
 | `pages/splash/` | 启动与自动登录 |

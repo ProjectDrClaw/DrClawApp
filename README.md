@@ -52,21 +52,17 @@ flutter clean
 flutter pub get
 ```
 
-3. 配置服务端地址
-
-编辑 `openim_common/lib/src/config.dart`：
-
-```dart
-static const _host = "10.110.177.132";
-```
-
-当前开发环境已配置为上述地址。完整端口与推送/地图配置见 [配置说明](./docs/config.md)。
-
-4. 运行
+3. 运行（多环境）
 
 ```bash
-flutter run
+# 开发环境（默认，host=10.110.177.132）
+flutter run --dart-define=ENV=dev
+
+# 生产环境（需先在 env_config.dart 填写 prodHost，或临时覆盖）
+flutter run --dart-define=ENV=prod --dart-define=SERVER_HOST=your-prod-domain
 ```
+
+完整端口与推送/地图配置见 [配置说明](./docs/config.md)。
 
 ## 构建
 

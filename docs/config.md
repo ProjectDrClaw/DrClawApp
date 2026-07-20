@@ -45,26 +45,33 @@ dart run flutter_native_splash:create --path=flutter_native_splash.yaml
 - **release**：必须存在 `key.properties`，否则构建失败
 - 本地开发机可保留自己的 `key.properties` 与 jks，勿把密码写进仓库
 
-## 服务端地址
+## 服务端地址（多环境）
 
-修改 `openim_common/lib/src/config.dart` 中的 `_host`：
+通过编译参数切换环境，默认 `dev`。配置见 `openim_common/lib/src/env_config.dart`。
 
-```dart
-static const _host = "10.110.177.132";
+| 环境 | 默认 host | 启动示例 |
+| ---- | --------- | -------- |
+| `dev` | `10.110.177.132` | `flutter run --dart-define=ENV=dev` |
+| `prod` | `your-prod-domain`（需修改） | `flutter run --dart-define=ENV=prod` |
+
+临时覆盖 host（不改代码）：
+
+```bash
+flutter run --dart-define=ENV=dev --dart-define=SERVER_HOST=10.110.177.132
 ```
 
-> 当前开发环境默认已指向该地址；若需切换环境，直接修改 `_host` 或通过应用内服务端配置覆盖。
+优先级：**应用内 DataSp 服务端配置** > `SERVER_HOST` > 当前环境默认 host。
 
-默认端口（未改服务端时）：
+默认端口（IP 模式）：
 
-| 用途 | 端口 / 路径（IP 模式） |
-| ---- | ---------------------- |
+| 用途 | 端口 |
+| ---- | ---- |
 | IM WebSocket | `10001` |
 | IM API | `10002` |
 | Auth | `10008` |
 | Chat Token | `10009` |
 
-也可在应用内写入服务端配置覆盖上述默认值。
+域名模式使用 `https` / `wss` 与路径 `/api`、`/chat`、`/msg_gateway`。
 
 ## 离线推送
 
