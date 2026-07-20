@@ -3,7 +3,7 @@
 | 文档 | 说明 |
 | ---- | ---- |
 | [architecture.md](./architecture.md) | 工程结构、技术栈、启动流程 |
-| [config.md](./config.md) | 多环境、签名、品牌资源、推送、地图 |
+| [config.md](./config.md) | 多环境、签名、品牌资源、推送、地图、Release 打包 |
 | [faq.md](./faq.md) | 常见问题 |
 | [../README.md](../README.md) | 项目总览与快速开始 |
 
@@ -12,9 +12,9 @@
 ## 上线前检查
 
 - [ ] 生产 `prodHost` / `SERVER_HOST` 已配置
-- [ ] 本机可访问对应 OpenIM 服务端口
-- [ ] Android：`key.properties` + release keystore 已备份
-- [ ] 仓库内签名文件齐全（Release 工作流会直接使用）
+- [ ] 联调网络可访问 OpenIM 服务端口
+- [ ] 仓库保持**私有**（含团队签名证书）
+- [ ] 另地备份 `android/app/drclaw.jks` 与 `key.properties`
 - [ ] Firebase / 个推已换成自有项目
 - [ ] 高德 Key（若使用位置消息）
 - [ ] iOS：证书、描述文件、App Group `group.com.drclaw.app.rtc`

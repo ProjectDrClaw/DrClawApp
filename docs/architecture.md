@@ -24,9 +24,10 @@ DrClawAppFlutter/
 ├── openim_live/         # 一对一音视频
 ├── local_plugin/        # 本地插件（来电提醒等）
 ├── launcher_icon/       # 品牌图标 / 启动图源文件
-├── android/ / ios/      # 原生工程
-├── docs/                # 文档
-└── .github/workflows/   # Release 时构建 Android APK
+├── android/             # 含团队统一签名 drclaw.jks
+├── ios/
+├── docs/
+└── .github/workflows/   # 仅 Release / 手动触发时打 APK
 ```
 
 ### 主应用 `lib/`

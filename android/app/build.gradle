@@ -42,7 +42,7 @@ android {
         drclaw {
             if (!keystorePropertiesFile.exists()) {
                 throw new GradleException(
-                    "缺少 android/app/key.properties。请复制 key.properties.example 并配置正式证书 drclaw.jks。"
+                    "缺少 android/app/key.properties（团队证书应随仓库提供：drclaw.jks + key.properties）。"
                 )
             }
             keyAlias keystoreProperties['keyAlias']
