@@ -1,0 +1,86 @@
+# 仅在发布 Release（或手动触发）时构建 Android 包，日常 push/PR 不执行
+name: Release Android
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 构建环境（dart-define ENV）
+        required: true
+        default: prod
+        type: choice
+        options:
+          - prod
+          - dev
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.8"
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+
+      - name: 写入 Android 签名
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_STORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "缺少签名 Secrets，请在仓库 Settings → Secrets 中配置："
+            echo "  ANDROID_KEYSTORE_BASE64 / ANDROID_KEY_ALIAS / ANDROID_STORE_PASSWORD / ANDROID_KEY_PASSWORD"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/drclaw-release.jks
+          printf '%s\n' \
+            "storePassword=${ANDROID_STORE_PASSWORD}" \
+            "keyPassword=${ANDROID_KEY_PASSWORD}" \
+            "keyAlias=${ANDROID_KEY_ALIAS}" \
+            "storeFile=drclaw-release.jks" \
+            > android/app/key.properties
+
+      - name: 构建 APK
+        env:
+          BUILD_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'prod' }}
+        run: flutter build apk --release --dart-define=ENV=$BUILD_ENV
+
+      - name: 上传构建产物（Actions Artifact）
+        uses: actions/upload-artifact@v4
+        with:
+          name: drclaw-android-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+
+      - name: 附加到 GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          for apk in build/app/outputs/flutter-apk/*.apk; do
+            name="$(basename "$apk")"
+            gh release upload "$TAG" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+            echo "已上传: $name → Release $TAG"
+          done

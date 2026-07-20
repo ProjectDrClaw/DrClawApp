@@ -55,6 +55,8 @@ flutter build apk --dart-define=ENV=prod             # 指定环境
 flutter build ipa --dart-define=ENV=prod             # iOS，需 macOS
 ```
 
+GitHub Actions **仅在发布 Release（或手动触发工作流）时**构建 Android APK，日常提交代码不会跑构建。详见 [docs/config.md](./docs/config.md#github-release-自动打包)。
+
 ## 能力概览
 
 账号、好友/黑名单、群组、多类型消息与会话、一对一音视频（LiveKit）、推送（个推/FCM，需自备 Key）。

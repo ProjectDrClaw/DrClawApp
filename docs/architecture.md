@@ -26,7 +26,7 @@ DrClawAppFlutter/
 ├── launcher_icon/       # 品牌图标 / 启动图源文件
 ├── android/ / ios/      # 原生工程
 ├── docs/                # 文档
-└── .github/workflows/   # CI（flutter analyze）
+└── .github/workflows/   # Release 时构建 Android APK
 ```
 
 ### 主应用 `lib/`

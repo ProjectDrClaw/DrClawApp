@@ -14,6 +14,7 @@
 - [ ] 生产 `prodHost` / `SERVER_HOST` 已配置
 - [ ] 本机可访问对应 OpenIM 服务端口
 - [ ] Android：`key.properties` + release keystore 已备份
+- [ ] GitHub Actions Secrets 已配置（Release 自动打 APK）
 - [ ] Firebase / 个推已换成自有项目
 - [ ] 高德 Key（若使用位置消息）
 - [ ] iOS：证书、描述文件、App Group `group.com.drclaw.app.rtc`

@@ -47,8 +47,23 @@ IP 模式默认端口：
 
 | 构建类型 | 行为 |
 | -------- | ---- |
-| debug | 无 `key.properties` 时用 Android 默认 debug 签名 |
+| debug | 使用 Android 默认 debug 签名 |
 | release | 必须有 `key.properties`，否则构建失败 |
+
+### GitHub Release 自动打包
+
+工作流 [`.github/workflows/release-android.yml`](../.github/workflows/release-android.yml) **仅在发布 Release 或手动触发时**构建 APK，日常 push/PR 不执行。
+
+在仓库 **Settings → Secrets and variables → Actions** 配置：
+
+| Secret | 说明 |
+| ------ | ---- |
+| `ANDROID_KEYSTORE_BASE64` | `drclaw-release.jks` 的 base64（`base64 -w0 drclaw-release.jks`） |
+| `ANDROID_KEY_ALIAS` | 别名，如 `drclaw` |
+| `ANDROID_STORE_PASSWORD` | keystore 密码 |
+| `ANDROID_KEY_PASSWORD` | key 密码 |
+
+发布后 APK 会上传到该 Release 附件，并保留一份 Actions Artifact。
 
 ## 品牌资源
 
