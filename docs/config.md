@@ -13,6 +13,25 @@
 | 展示名 | Dr.Claw |
 | Dart 包名 | `drclaw` |
 | Android / iOS | `com.drclaw.app` |
+| 品牌色 | `#1d5db0`（与 DrClawApp 一致） |
+
+### 图片资源
+
+品牌图与 Expo 工程 `D:\Workspace\DrClawApp\assets\images` 对齐，源文件在 `launcher_icon/`：
+
+| 文件 | 用途 |
+| ---- | ---- |
+| `app-icon.png` / `icon.svg` | 主图标（设计源为 svg） |
+| `android-icon-foreground.png` | Android 自适应前景 |
+| `android-icon-monochrome.png` | Android 单色图标 |
+| `splash-icon.png` | 原生启动图 |
+
+更新后执行：
+
+```bash
+dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
+dart run flutter_native_splash:create --path=flutter_native_splash.yaml
+```
 
 ## Android 签名
 

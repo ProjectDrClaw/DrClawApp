@@ -3,3 +3,6 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path: "launcher_icon/app-icon.png"
+  adaptive_icon_background: "#1d5db0"
+  adaptive_icon_foreground: "launcher_icon/android-icon-foreground.png"
+  adaptive_icon_monochrome: "launcher_icon/android-icon-monochrome.png"
