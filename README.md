@@ -3,7 +3,7 @@
 Dr.Claw Flutter 客户端（Android / iOS）。基于 [OpenIM Flutter Demo](https://github.com/openimsdk/openim-flutter-demo) **v3.8.3+235**（`flutter_openim_sdk` `^3.8.3+hotfix.12`，上游提交 `06480b8`）改造。
 
 本地目录：`D:\Workspace\DrClawProject\DrClawApp`  
-远程仓库：https://github.com/9999-12-31/DrClawAppFlutter.git
+远程仓库：https://github.com/ProjectDrClaw/DrClawApp.git
 
 | 项 | 值 |
 | -- | -- |
@@ -32,7 +32,7 @@ Dr.Claw Flutter 客户端（Android / iOS）。基于 [OpenIM Flutter Demo](http
 ## 快速开始
 
 ```bash
-git clone https://github.com/9999-12-31/DrClawAppFlutter.git DrClawApp
+git clone https://github.com/ProjectDrClaw/DrClawApp.git DrClawApp
 cd DrClawApp
 flutter pub get
 
