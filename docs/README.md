@@ -6,6 +6,7 @@
 | [config.md](./config.md) | 多环境、签名、品牌资源、推送、地图、Release 打包 |
 | [faq.md](./faq.md) | 常见问题 |
 | [message_types_alignment.md](./message_types_alignment.md) | 与 Agent 对齐语音/视频/文件/@文本的实施计划 |
+| [business_workbench_design.md](./business_workbench_design.md) | 业务工作台：患者/录音，及聊天工具箱选患者设计 |
 | [../README.md](../README.md) | 项目总览与快速开始 |
 
 相关工程：Expo 客户端 `DrClawApp`（品牌图与应用 ID 已对齐）。
