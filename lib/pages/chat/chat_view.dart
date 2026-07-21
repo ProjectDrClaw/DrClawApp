@@ -25,6 +25,7 @@ class ChatPage extends StatelessWidget {
         showRightNickname: !logic.isSingleChat,
         onFailedToResend: () => logic.failedResend(message),
         onClickItemView: () => logic.parseClickEvent(message),
+        onLongPress: () => logic.onLongPressMessage(message),
         visibilityChange: (msg, visible) {
           logic.markMessageAsRead(message, visible);
         },

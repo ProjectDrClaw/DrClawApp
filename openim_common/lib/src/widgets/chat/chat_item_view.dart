@@ -90,6 +90,7 @@ class ChatItemView extends StatefulWidget {
     this.onVisibleTrulyText,
     this.onFailedToResend,
     this.onClickItemView,
+    this.onLongPress,
     required this.onTapUserProfile,
   }) : super(key: key);
   final ItemViewBuilder? mediaItemBuilder;
@@ -120,6 +121,7 @@ class ChatItemView extends StatefulWidget {
   final Function()? onLongPressRightAvatar;
   final Function(String? text)? onVisibleTrulyText;
   final Function()? onClickItemView;
+  final Function()? onLongPress;
   final ValueChanged<({String userID, String name, String? faceURL, String? groupID})> onTapUserProfile;
 
   final Function()? onFailedToResend;
@@ -245,6 +247,7 @@ class _ChatItemViewState extends State<ChatItemView> {
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: widget.onClickItemView,
+        onLongPress: widget.onLongPress,
         child: child ??
             ChatText(
               isISend: _isISend,

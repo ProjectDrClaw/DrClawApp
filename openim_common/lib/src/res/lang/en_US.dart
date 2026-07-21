@@ -150,6 +150,8 @@ const Map<String, String> en_US = {
   'joinIn': 'Join',
   'menuCopy': 'Copy',
   'menuDel': 'Delete',
+  'confirmDeleteMessage': 'Delete this message?',
+  'confirmDeleteConversation': 'Delete this conversation and its messages?',
   'menuForward': 'Forward',
   'menuReply': 'Reply',
   'menuMulti': 'Select Multiple',

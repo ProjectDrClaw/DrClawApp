@@ -150,6 +150,8 @@ const Map<String, String> zh_CN = {
   'joinIn': '加入',
   'menuCopy': '复制',
   'menuDel': '删除',
+  'confirmDeleteMessage': '确定删除这条消息吗？',
+  'confirmDeleteConversation': '确定删除该会话及其聊天记录吗？',
   'menuForward': '转发',
   'menuReply': '回复',
   'menuMulti': '多选',

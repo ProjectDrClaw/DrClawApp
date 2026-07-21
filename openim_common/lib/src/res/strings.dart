@@ -8,12 +8,14 @@ import 'lang/zh_CN.dart';
 
 class TranslationService extends Translations {
   static Locale? get locale => Get.deviceLocale;
-  static const fallbackLocale = Locale('en', 'US');
+  // 产品默认中文；缺 key 时也回落到中文，避免误显英文
+  static const fallbackLocale = Locale('zh', 'CN');
 
   @override
   Map<String, Map<String, String>> get keys => {
         'en_US': en_US,
         'zh_CN': zh_CN,
+        'zh': zh_CN,
       };
 }
 
@@ -318,6 +320,10 @@ class StrRes {
   static String get menuCopy => 'menuCopy'.tr;
 
   static String get menuDel => 'menuDel'.tr;
+
+  static String get confirmDeleteMessage => 'confirmDeleteMessage'.tr;
+
+  static String get confirmDeleteConversation => 'confirmDeleteConversation'.tr;
 
   static String get menuForward => 'menuForward'.tr;
 

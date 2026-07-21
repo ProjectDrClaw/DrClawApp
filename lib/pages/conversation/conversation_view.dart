@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
 import 'package:drclaw/core/controller/im_controller.dart';
 import 'package:openim_common/openim_common.dart';
@@ -45,7 +46,8 @@ class ConversationPage extends StatelessWidget {
                           ..overflow = TextOverflow.ellipsis,
                       ),
                     10.horizontalSpace,
-                    if (null != logic.imSdkStatus && (!logic.reInstall || logic.isFailedSdkStatus))
+                    if (null != logic.imSdkStatus &&
+                        (!logic.reInstall || logic.isFailedSdkStatus))
                       Flexible(
                           child: SyncStatusView(
                         isFailed: logic.isFailedSdkStatus,
@@ -57,12 +59,11 @@ class ConversationPage extends StatelessWidget {
           body: Column(
             children: [
               Expanded(
-                  child: ListView.builder(
-                    itemBuilder: (_, index) => _buildItemView(
-                      logic.list.elementAt(index),
-                    ),
-                    itemCount: logic.list.length,
-                  
+                child: ListView.builder(
+                  itemBuilder: (_, index) => _buildItemView(
+                    logic.list.elementAt(index),
+                  ),
+                  itemCount: logic.list.length,
                 ),
               ),
             ],
@@ -70,80 +71,89 @@ class ConversationPage extends StatelessWidget {
         ));
   }
 
-  Widget _buildItemView(ConversationInfo info) => Ink(
+  Widget _buildItemView(ConversationInfo info) => Slidable(
+        key: ValueKey(info.conversationID),
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: 0.25,
+          children: [
+            SlidableAction(
+              onPressed: (_) => logic.deleteConversation(info),
+              backgroundColor: Styles.c_FF381F,
+              foregroundColor: Colors.white,
+              icon: Icons.delete_outline_rounded,
+              label: StrRes.menuDel,
+            ),
+          ],
+        ),
         child: InkWell(
           onTap: () => logic.toChat(conversationInfo: info),
-          child: Stack(
-            children: [
-              Container(
-                height: 68,
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Row(
-                  children: [
-                    Stack(
-                      children: [
-                        AvatarView(
-                          width: 48.w,
-                          height: 48.h,
-                          text: logic.getShowName(info),
-                          url: info.faceURL,
-                          isGroup: logic.isGroupChat(info),
-                          textStyle: Styles.ts_FFFFFF_14sp_medium,
-                        ),
-                      ],
-                    ),
-                    12.horizontalSpace,
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+          child: Container(
+            height: 68,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            color: Styles.c_F8F9FA,
+            child: Row(
+              children: [
+                AvatarView(
+                  width: 48.w,
+                  height: 48.h,
+                  text: logic.getShowName(info),
+                  url: info.faceURL,
+                  isGroup: logic.isGroupChat(info),
+                  textStyle: Styles.ts_FFFFFF_14sp_medium,
+                ),
+                12.horizontalSpace,
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: 180.w),
-                                child: logic.getShowName(info).toText
-                                  ..style = Styles.ts_0C1C33_17sp
-                                  ..maxLines = 1
-                                  ..overflow = TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              logic.getTime(info).toText..style = Styles.ts_8E9AB0_12sp,
-                            ],
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: 180.w),
+                            child: logic.getShowName(info).toText
+                              ..style = Styles.ts_0C1C33_17sp
+                              ..maxLines = 1
+                              ..overflow = TextOverflow.ellipsis,
                           ),
-                          3.verticalSpace,
-                          Row(
-                            children: [
-                              MatchTextView(
-                                text: logic.getContent(info),
-                                textStyle: Styles.ts_8E9AB0_14sp,
-                                prefixSpan: TextSpan(
-                                  text: '',
-                                  children: [
-                                    if (logic.getUnreadCount(info) > 0)
-                                      TextSpan(
-                                        text: '[${sprintf(StrRes.nPieces, [logic.getUnreadCount(info)])}] ',
-                                        style: Styles.ts_8E9AB0_14sp,
-                                      ),
-                                    TextSpan(
-                                      text: logic.getPrefixTag(info),
-                                      style: Styles.ts_0089FF_14sp,
-                                    ),
-                                  ],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              UnreadCountView(count: logic.getUnreadCount(info)),
-                            ],
-                          ),
+                          const Spacer(),
+                          logic.getTime(info).toText
+                            ..style = Styles.ts_8E9AB0_12sp,
                         ],
                       ),
-                    ),
-                  ],
+                      3.verticalSpace,
+                      Row(
+                        children: [
+                          MatchTextView(
+                            text: logic.getContent(info),
+                            textStyle: Styles.ts_8E9AB0_14sp,
+                            prefixSpan: TextSpan(
+                              text: '',
+                              children: [
+                                if (logic.getUnreadCount(info) > 0)
+                                  TextSpan(
+                                    text:
+                                        '[${sprintf(StrRes.nPieces, [logic.getUnreadCount(info)])}] ',
+                                    style: Styles.ts_8E9AB0_14sp,
+                                  ),
+                                TextSpan(
+                                  text: logic.getPrefixTag(info),
+                                  style: Styles.ts_0089FF_14sp,
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Spacer(),
+                          UnreadCountView(count: logic.getUnreadCount(info)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

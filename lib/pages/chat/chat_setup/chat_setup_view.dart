@@ -20,6 +20,14 @@ class ChatSetupPage extends StatelessWidget {
         child: Obx(() => Column(
               children: [
                 _buildBaseInfoView(),
+                10.verticalSpace,
+                _buildItemView(
+                  text: StrRes.clearChatHistory,
+                  textStyle: Styles.ts_FF381F_17sp,
+                  isTopRadius: true,
+                  isBottomRadius: true,
+                  onTap: logic.clearChatHistory,
+                ),
               ],
             )),
       ),

@@ -11,13 +11,16 @@ Future<String?> showRecordingTitleDialog({
   String confirmText = '保存',
 }) {
   return Get.dialog<String>(
-    _RecordingTitleDialog(
-      initialTitle: (initialTitle?.trim().isNotEmpty == true)
-          ? initialTitle!.trim()
-          : PatientDisplay.defaultRecordingTitle(),
-      confirmText: confirmText,
+    PopScope(
+      canPop: false,
+      child: _RecordingTitleDialog(
+        initialTitle: (initialTitle?.trim().isNotEmpty == true)
+            ? initialTitle!.trim()
+            : PatientDisplay.defaultRecordingTitle(),
+        confirmText: confirmText,
+      ),
     ),
-    barrierDismissible: true,
+    barrierDismissible: false,
   );
 }
 

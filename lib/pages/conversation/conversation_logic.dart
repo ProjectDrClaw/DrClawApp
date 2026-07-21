@@ -325,4 +325,20 @@ class ConversationLogic extends GetxController {
   addGroup() => AppNavigator.startAddContactsBySearch(searchType: SearchType.group);
 
   void globalSearch() => AppNavigator.startGlobalSearch();
+
+  /// 从会话列表删除会话（含聊天记录）
+  Future<void> deleteConversation(ConversationInfo info) async {
+    final ok = await Get.dialog<bool>(
+      CustomDialog(title: StrRes.confirmDeleteConversation),
+    );
+    if (ok != true) return;
+    try {
+      await OpenIM.iMManager.conversationManager.deleteConversationAndDeleteAllMsg(
+        conversationID: info.conversationID,
+      );
+      list.removeWhere((e) => e.conversationID == info.conversationID);
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
+  }
 }

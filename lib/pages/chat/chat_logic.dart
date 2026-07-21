@@ -208,6 +208,13 @@ class ChatLogic extends SuperController {
       } catch (e) {}
     };
 
+    imLogic.onRecvMessageRevoked = (RevokedInfo info) {
+      final id = info.clientMsgID;
+      if (id == null || id.isEmpty) return;
+      messageList.removeWhere((e) => e.clientMsgID == id);
+      scrollingCacheMessageList.removeWhere((e) => e.clientMsgID == id);
+    };
+
     joinedGroupAddedSub = imLogic.joinedGroupAddedSubject.listen((event) {
       if (event.groupID == groupID) {
         isInGroup.value = true;
@@ -965,6 +972,138 @@ class ChatLogic extends SuperController {
 
   void clearAllMessage() {
     messageList.clear();
+  }
+
+  /// 长按消息：复制 / 撤回 / 删除
+  void onLongPressMessage(Message message) {
+    if (isNotificationType(message)) return;
+    focusNode.unfocus();
+    forceCloseToolbox.add(true);
+
+    final isISend = message.sendID == OpenIM.iMManager.userID;
+    final canCopy = message.isTextType || message.isAtTextType;
+    final canRevoke = isISend &&
+        message.status == MessageStatus.succeeded &&
+        !_isRevokeExpired(message);
+
+    Get.bottomSheet(
+      SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Styles.c_FFFFFF,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (canCopy)
+                ListTile(
+                  leading: Icon(Icons.copy_rounded, color: Styles.c_0C1C33),
+                  title: Text(StrRes.menuCopy, style: Styles.ts_0C1C33_17sp),
+                  onTap: () {
+                    Get.back();
+                    _copyMessage(message);
+                  },
+                ),
+              if (canRevoke)
+                ListTile(
+                  leading: Icon(Icons.undo_rounded, color: Styles.c_0C1C33),
+                  title: Text(StrRes.menuRevoke, style: Styles.ts_0C1C33_17sp),
+                  onTap: () {
+                    Get.back();
+                    revokeMessage(message);
+                  },
+                ),
+              ListTile(
+                leading: Icon(Icons.delete_outline_rounded, color: Styles.c_FF381F),
+                title: Text(StrRes.menuDel, style: Styles.ts_FF381F_17sp),
+                onTap: () {
+                  Get.back();
+                  deleteMessage(message);
+                },
+              ),
+              ListTile(
+                title: Text(
+                  StrRes.cancel,
+                  textAlign: TextAlign.center,
+                  style: Styles.ts_8E9AB0_17sp,
+                ),
+                onTap: () => Get.back(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _isRevokeExpired(Message message) {
+    final sendTime = message.sendTime ?? 0;
+    // 与常见 IM 一致：发送后 2 分钟内可撤回
+    return DateTime.now().millisecondsSinceEpoch - sendTime > 2 * 60 * 1000;
+  }
+
+  void _copyMessage(Message message) {
+    final text = copyTextMap[message.clientMsgID] ??
+        (message.isAtTextType
+            ? (message.atTextElem?.text ?? '')
+            : (message.textElem?.content ?? ''));
+    if (text.trim().isEmpty) {
+      IMViews.showToast(StrRes.unsupportedMessage);
+      return;
+    }
+    IMUtils.copy(text: text);
+  }
+
+  Future<void> deleteMessage(Message message) async {
+    final id = message.clientMsgID;
+    if (id == null || id.isEmpty) return;
+    final ok = await Get.dialog<bool>(
+      CustomDialog(title: StrRes.confirmDeleteMessage),
+    );
+    if (ok != true) return;
+    try {
+      await OpenIM.iMManager.messageManager.deleteMessageFromLocalAndSvr(
+        conversationID: conversationInfo.conversationID,
+        clientMsgID: id,
+      );
+      messageList.removeWhere((e) => e.clientMsgID == id);
+      scrollingCacheMessageList.removeWhere((e) => e.clientMsgID == id);
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
+  }
+
+  Future<void> revokeMessage(Message message) async {
+    final id = message.clientMsgID;
+    if (id == null || id.isEmpty) return;
+    try {
+      await OpenIM.iMManager.messageManager.revokeMessage(
+        conversationID: conversationInfo.conversationID,
+        clientMsgID: id,
+      );
+      messageList.removeWhere((e) => e.clientMsgID == id);
+      scrollingCacheMessageList.removeWhere((e) => e.clientMsgID == id);
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
+  }
+
+  /// 清空当前会话聊天记录（保留会话）
+  Future<void> clearChatHistory() async {
+    final ok = await Get.dialog<bool>(
+      CustomDialog(title: StrRes.confirmClearChatHistory),
+    );
+    if (ok != true) return;
+    try {
+      await OpenIM.iMManager.conversationManager.clearConversationAndDeleteAllMsg(
+        conversationID: conversationInfo.conversationID,
+      );
+      clearAllMessage();
+      IMViews.showToast(StrRes.clearSuccessfully);
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
   }
 
   void _initChatConfig() async {

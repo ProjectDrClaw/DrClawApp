@@ -83,4 +83,6 @@ class ChatSetupLogic extends GetxController {
         nickname: conversationInfo.value.showName,
         faceURL: conversationInfo.value.faceURL,
       );
+
+  void clearChatHistory() => chatLogic.clearChatHistory();
 }
