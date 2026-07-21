@@ -164,10 +164,14 @@ class _ChatItemViewState extends State<ChatItemView> {
     } else if (_message.isEmojiType) {
     } else if (_message.isTagType) {
     }*/
-    if (_message.isTextType) {
+    if (_message.isTextType || _message.isAtTextType) {
       isBubbleBg = true;
+      final text = _message.isAtTextType
+          ? (_message.atTextElem?.text ?? '')
+          : (_message.textElem?.content ?? '');
       child = ChatText(
-        text: _message.textElem!.content!,
+        isISend: _isISend,
+        text: text,
         patterns: widget.patterns,
         textScaleFactor: widget.textScaleFactor,
         onVisibleTrulyText: widget.onVisibleTrulyText,

@@ -102,6 +102,7 @@ dependencies:
     git:
       url: https://github.com/std-s/flutter_easyloading.git
       ref: 56db1b3
+  flutter_markdown_plus: ^1.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

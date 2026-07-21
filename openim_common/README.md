@@ -1,6 +1,6 @@
 # openim_common
 
-DrClawAppFlutter 公共模块。
+DrClawApp 公共模块。
 
 包含：`EnvConfig`（多环境）、`Config`、HTTP API、通用组件、多语言、推送与本地存储。
 

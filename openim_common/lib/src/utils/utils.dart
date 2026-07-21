@@ -686,6 +686,9 @@ class IMUtils {
         case MessageType.text:
           content = message.textElem!.content!;
           break;
+        case MessageType.atText:
+          content = message.atTextElem?.text ?? '';
+          break;
         case MessageType.picture:
           content = '[${StrRes.picture}]';
           break;

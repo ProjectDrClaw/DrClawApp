@@ -18,7 +18,7 @@
 ## 目录结构
 
 ```
-DrClawAppFlutter/
+DrClawApp/
 ├── lib/                 # 主应用：页面、路由、IM 控制器
 ├── openim_common/       # 公共层：EnvConfig、Config、API、组件、多语言、推送
 ├── openim_live/         # 一对一音视频

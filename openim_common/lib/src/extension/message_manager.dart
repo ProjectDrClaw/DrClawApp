@@ -75,6 +75,8 @@ extension MessageExt on Message {
 
   bool get isTextType => contentType == MessageType.text;
 
+  bool get isAtTextType => contentType == MessageType.atText;
+
   bool get isPictureType => contentType == MessageType.picture;
 
   bool get isVoiceType => contentType == MessageType.voice;
