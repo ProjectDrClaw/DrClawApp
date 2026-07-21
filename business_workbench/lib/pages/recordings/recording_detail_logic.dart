@@ -20,6 +20,9 @@ class RecordingDetailLogic extends GetxController {
 
   late final String localId;
   final _player = AudioPlayer();
+  bool _dirty = false;
+
+  bool get isDirty => _dirty;
 
   @override
   void onInit() {
@@ -70,7 +73,7 @@ class RecordingDetailLogic extends GetxController {
     if (ok != true) return;
     await WorkbenchStore.instance.softDeleteRecording(localId, deleteFile: true);
     IMViews.showToast('已删除');
-    Get.back();
+    Get.back(result: true);
   }
 
   Future<void> editTitle() async {
@@ -89,6 +92,7 @@ class RecordingDetailLogic extends GetxController {
     r.updatedAt = DateTime.now().millisecondsSinceEpoch;
     await WorkbenchStore.instance.saveRecording(r);
     recording.refresh();
+    _dirty = true;
     IMViews.showToast('标题已更新');
   }
 
@@ -143,12 +147,14 @@ class RecordingDetailLogic extends GetxController {
       r.updatedAt = r.sentAt!;
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
+      _dirty = true;
       IMViews.showToast('已发送');
     } catch (e) {
       r.status = RecordingStatus.failed;
       r.updatedAt = DateTime.now().millisecondsSinceEpoch;
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
+      _dirty = true;
       IMViews.showToast('发送失败：$e');
     } finally {
       sending.value = false;

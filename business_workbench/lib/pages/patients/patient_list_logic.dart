@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 
@@ -38,12 +39,19 @@ class PatientListLogic extends GetxController {
     reload();
   }
 
-  void toCreate() =>
-      Get.toNamed(WorkbenchRoutes.patientEdit)?.then((_) => reload());
+  void _reloadAfterPop(dynamic result) {
+    if (result == true) {
+      SchedulerBinding.instance.addPostFrameCallback((_) => reload());
+    }
+  }
 
-  void toDetail(LocalPatient p) =>
-      Get.toNamed(WorkbenchRoutes.patientDetail, arguments: {'localId': p.localId})
-          ?.then((_) => reload());
+  void toCreate() =>
+      Get.toNamed(WorkbenchRoutes.patientEdit)?.then(_reloadAfterPop);
+
+  void toDetail(LocalPatient p) => Get.toNamed(
+        WorkbenchRoutes.patientDetail,
+        arguments: {'localId': p.localId},
+      )?.then(_reloadAfterPop);
 
   Future<void> deletePatient(LocalPatient p) async {
     await WorkbenchStore.instance.softDeletePatient(p.localId);

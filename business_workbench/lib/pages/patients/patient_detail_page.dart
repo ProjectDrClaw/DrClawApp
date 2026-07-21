@@ -15,9 +15,15 @@ class PatientDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logic = Get.find<PatientDetailLogic>();
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Get.back(result: logic.isDirty);
+      },
+      child: Scaffold(
       appBar: TitleBar.back(
         title: '患者详情',
+        onTap: () => Get.back(result: logic.isDirty),
         right: WbTextAction(label: '编辑', onTap: logic.toEdit),
       ),
       backgroundColor: WbTheme.background,
@@ -247,6 +253,7 @@ class PatientDetailPage extends StatelessWidget {
           ],
         );
       }),
+    ),
     );
   }
 

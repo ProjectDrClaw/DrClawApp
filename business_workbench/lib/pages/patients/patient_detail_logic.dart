@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import '../../models/local_patient.dart';
@@ -10,6 +11,7 @@ class PatientDetailLogic extends GetxController {
   final recordings = <LocalRecording>[].obs;
 
   late final String localId;
+  bool _dirty = false;
 
   @override
   void onInit() {
@@ -30,22 +32,32 @@ class PatientDetailLogic extends GetxController {
     );
   }
 
+  void _reloadIfDirty(dynamic result) {
+    if (result == true) {
+      _dirty = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) => reload());
+    }
+  }
+
+  /// 供返回列表时判断是否需要刷新。
+  bool get isDirty => _dirty;
+
   void toEdit() {
     Get.toNamed(WorkbenchRoutes.patientEdit, arguments: {'localId': localId})
-        ?.then((_) => reload());
+        ?.then(_reloadIfDirty);
   }
 
   void startRecording() {
     Get.toNamed(
       WorkbenchRoutes.recordingSession,
       arguments: {'patientLocalId': localId},
-    )?.then((_) => reload());
+    )?.then(_reloadIfDirty);
   }
 
   void openRecording(LocalRecording r) {
     Get.toNamed(
       WorkbenchRoutes.recordingDetail,
       arguments: {'localId': r.localId},
-    )?.then((_) => reload());
+    )?.then(_reloadIfDirty);
   }
 }

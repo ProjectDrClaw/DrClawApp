@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 
 import '../../models/local_patient.dart';
@@ -16,11 +17,12 @@ class RecordingListLogic extends GetxController {
   }
 
   void reload() {
+    final patients = WorkbenchStore.instance.patientMap();
     final list = WorkbenchStore.instance.listRecordings();
     final mapped = list
         .map((r) => (
               recording: r,
-              patient: WorkbenchStore.instance.getPatient(r.patientLocalId),
+              patient: patients[r.patientLocalId],
             ))
         .toList();
     final k = keyword.value.trim();
@@ -50,6 +52,11 @@ class RecordingListLogic extends GetxController {
     Get.toNamed(
       WorkbenchRoutes.recordingDetail,
       arguments: {'localId': r.localId},
-    )?.then((_) => reload());
+    )?.then((result) {
+      if (result == true) {
+        // 等返回动画结束后再刷，避免与 pop 抢主线程
+        SchedulerBinding.instance.addPostFrameCallback((_) => reload());
+      }
+    });
   }
 }

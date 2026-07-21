@@ -9,39 +9,65 @@ import '../conversation/conversation_view.dart';
 import '../mine/mine_view.dart';
 import 'home_logic.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   final logic = Get.find<HomeLogic>();
-  HomePage({super.key});
+
+  /// 缓存 Tab 页面，避免未读角标刷新时重建整棵树
+  late final List<Widget> _screens = [
+    ConversationPage(),
+    ContactsPage(),
+    WorkbenchPage(),
+    MinePage(),
+  ];
 
   List<PersistentTabConfig> _tabs() => [
         PersistentTabConfig(
-          screen: ConversationPage(),
+          screen: _screens[0],
           item: ItemConfig(
-            icon: _setupIcon(
-              const _ChatTabIcon(active: true),
-              logic.unreadMsgCount.value,
+            icon: Obx(
+              () => _setupIcon(
+                const _ChatTabIcon(active: true),
+                logic.unreadMsgCount.value,
+              ),
             ),
-            inactiveIcon: _setupIcon(
-              const _ChatTabIcon(active: false),
-              logic.unreadMsgCount.value,
+            inactiveIcon: Obx(
+              () => _setupIcon(
+                const _ChatTabIcon(active: false),
+                logic.unreadMsgCount.value,
+              ),
             ),
             title: StrRes.home,
             textStyle: Styles.ts_0089FF_10sp_semibold,
           ),
         ),
         PersistentTabConfig(
-          screen: ContactsPage(),
+          screen: _screens[1],
           item: ItemConfig(
-            icon: _setupIcon(
-                ImageRes.homeTab2Sel.toImage, logic.unhandledCount.value),
-            inactiveIcon: _setupIcon(
-                ImageRes.homeTab2Nor.toImage, logic.unhandledCount.value),
+            icon: Obx(
+              () => _setupIcon(
+                ImageRes.homeTab2Sel.toImage,
+                logic.unhandledCount.value,
+              ),
+            ),
+            inactiveIcon: Obx(
+              () => _setupIcon(
+                ImageRes.homeTab2Nor.toImage,
+                logic.unhandledCount.value,
+              ),
+            ),
             title: StrRes.contacts,
             textStyle: Styles.ts_0089FF_10sp_semibold,
           ),
         ),
         PersistentTabConfig(
-          screen: WorkbenchPage(),
+          screen: _screens[2],
           item: ItemConfig(
             icon: ImageRes.homeTab3Sel.toImage,
             inactiveIcon: ImageRes.homeTab3Nor.toImage,
@@ -50,7 +76,7 @@ class HomePage extends StatelessWidget {
           ),
         ),
         PersistentTabConfig(
-          screen: MinePage(),
+          screen: _screens[3],
           item: ItemConfig(
             icon: ImageRes.homeTab4Sel.toImage,
             inactiveIcon: ImageRes.homeTab4Nor.toImage,
@@ -81,22 +107,19 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Styles.c_FFFFFF,
-      body: Obx(
-        () => PersistentTabView(
-          tabs: _tabs(),
-          navBarBuilder: (navBarConfig) => Style1BottomNavBar(
-            navBarConfig: navBarConfig,
-            navBarDecoration: const NavBarDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black12, blurRadius: 0.5, spreadRadius: 0.5),
-              ],
-            ),
+      body: PersistentTabView(
+        tabs: _tabs(),
+        navBarBuilder: (navBarConfig) => Style1BottomNavBar(
+          navBarConfig: navBarConfig,
+          navBarDecoration: const NavBarDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(color: Colors.black12, blurRadius: 0.5, spreadRadius: 0.5),
+            ],
           ),
-          navBarOverlap: const NavBarOverlap.none(),
-          screenTransitionAnimation: const ScreenTransitionAnimation.none(),
         ),
+        navBarOverlap: const NavBarOverlap.none(),
+        screenTransitionAnimation: const ScreenTransitionAnimation.none(),
       ),
     );
   }

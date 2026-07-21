@@ -14,9 +14,15 @@ class RecordingDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logic = Get.find<RecordingDetailLogic>();
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Get.back(result: logic.isDirty);
+      },
+      child: Scaffold(
       appBar: TitleBar.back(
         title: '录音详情',
+        onTap: () => Get.back(result: logic.isDirty),
         right: WbTextAction(
           label: '删除',
           onTap: logic.delete,
@@ -167,6 +173,7 @@ class RecordingDetailPage extends StatelessWidget {
           ],
         );
       }),
+    ),
     );
   }
 }

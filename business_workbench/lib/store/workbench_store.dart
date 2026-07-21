@@ -36,6 +36,18 @@ class WorkbenchStore {
     _recordingBox = await Hive.openBox<String>('wb_recordings_$_userId');
   }
 
+  /// 仅统计数量，避免为刷新角标做全量反序列化。
+  int countPatients({bool includeDeleted = false}) {
+    final box = _patientBox;
+    if (box == null) return 0;
+    if (includeDeleted) return box.length;
+    var n = 0;
+    for (final raw in box.values) {
+      if (!_isDeletedRaw(raw)) n++;
+    }
+    return n;
+  }
+
   List<LocalPatient> listPatients({bool includeDeleted = false}) {
     final box = _patientBox;
     if (box == null) return [];
@@ -49,6 +61,15 @@ class WorkbenchStore {
       return b.updatedAt.compareTo(a.updatedAt);
     });
     return list;
+  }
+
+  /// 患者 id → 实体，供录音列表一次加载后复用。
+  Map<String, LocalPatient> patientMap({bool includeDeleted = false}) {
+    final map = <String, LocalPatient>{};
+    for (final p in listPatients(includeDeleted: includeDeleted)) {
+      map[p.localId] = p;
+    }
+    return map;
   }
 
   LocalPatient? getPatient(String localId) {
@@ -75,6 +96,17 @@ class WorkbenchStore {
     }
   }
 
+  int countRecordings({bool includeDeleted = false}) {
+    final box = _recordingBox;
+    if (box == null) return 0;
+    if (includeDeleted) return box.length;
+    var n = 0;
+    for (final raw in box.values) {
+      if (!_isDeletedRaw(raw)) n++;
+    }
+    return n;
+  }
+
   List<LocalRecording> listRecordings({String? patientLocalId, bool includeDeleted = false}) {
     final box = _recordingBox;
     if (box == null) return [];
@@ -85,6 +117,15 @@ class WorkbenchStore {
         .toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
+  }
+
+  /// 从原始 JSON 字符串快速判断 deleted，避免完整 fromJson。
+  static bool _isDeletedRaw(String raw) {
+    // 兼容 "deleted":true / "deleted": true
+    final i = raw.indexOf('"deleted"');
+    if (i < 0) return false;
+    final slice = raw.substring(i, (i + 24).clamp(0, raw.length));
+    return slice.contains('true');
   }
 
   LocalRecording? getRecording(String localId) {

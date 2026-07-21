@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
@@ -16,13 +17,14 @@ class WorkbenchPage extends StatelessWidget {
   Future<void> _openPatients() async {
     if (!await logic.ensureLoggedIn()) return;
     await Get.toNamed(WorkbenchRoutes.patients);
-    logic.refreshCounts();
+    // 轻量计数延后到帧后，避免与返回动画抢主线程
+    SchedulerBinding.instance.addPostFrameCallback((_) => logic.refreshCounts());
   }
 
   Future<void> _openRecordings() async {
     if (!await logic.ensureLoggedIn()) return;
     await Get.toNamed(WorkbenchRoutes.recordings);
-    logic.refreshCounts();
+    SchedulerBinding.instance.addPostFrameCallback((_) => logic.refreshCounts());
   }
 
   @override

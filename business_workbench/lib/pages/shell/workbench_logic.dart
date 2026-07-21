@@ -43,7 +43,7 @@ class WorkbenchLogic extends GetxController {
       return;
     }
     ready.value = true;
-    patientCount.value = WorkbenchStore.instance.listPatients().length;
-    recordingCount.value = WorkbenchStore.instance.listRecordings().length;
+    patientCount.value = WorkbenchStore.instance.countPatients();
+    recordingCount.value = WorkbenchStore.instance.countRecordings();
   }
 }
