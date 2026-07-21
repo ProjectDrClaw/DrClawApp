@@ -5,6 +5,7 @@ import 'package:flutter_screen_lock/flutter_screen_lock.dart';
 import 'package:get/get.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:business_workbench/business_workbench.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../core/controller/app_controller.dart';
@@ -111,7 +112,17 @@ class HomeLogic extends SuperController {
     getUnhandledFriendApplicationCount();
     getUnhandledGroupApplicationCount();
     cacheLogic.initCallRecords();
+    _initWorkbench();
     super.onReady();
+  }
+
+  Future<void> _initWorkbench() async {
+    try {
+      await WorkbenchModule.init();
+      await WorkbenchModule.onUserChanged(OpenIM.iMManager.userID);
+    } catch (e, s) {
+      Logger.print('WorkbenchModule init failed: $e $s');
+    }
   }
 
   @override

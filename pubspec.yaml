@@ -106,6 +106,8 @@ dependencies:
     path: openim_common
   openim_live:
     path: openim_live
+  business_workbench:
+    path: business_workbench
 
 dev_dependencies:
   flutter_test:

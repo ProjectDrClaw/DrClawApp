@@ -1,6 +1,6 @@
 ﻿# 业务工作台（business_workbench）详细设计
 
-> 状态：设计稿（待评审实施）  
+> 状态：**P0 实施中**（设计已定稿；双轨患者见 §14，P0 仅本地工作集）  
 > 范围：[DrClawApp](../) — 主工程仅挂载 Tab；**业务实现独立本地包 `business_workbench`**  
 > 关联：查房「床旁录音 → 发给 Agent → Business 暂存 → HIS 回填」闭环；Business 患者字段对齐 `PatientDTO`
 
@@ -21,6 +21,10 @@
 | **业务工作台主入口** | 底部 **业务工作台** Tab；独立包 `business_workbench`，作为与 **DrClawBusiness** 交互的业务能力主入口与扩展点 |
 | **业务包解耦** | 患者、录音及后续 Business 相关能力均在 path 包内；主工程只做壳 + Host（IM / 后续 Business API）适配 |
 | MVP 发送 | 支持**批量录音（本地多条）**；发给 Agent **仅单条发送** |
+| **长录音投递** | 以 OpenIM **文件消息（105）** 发送，不用语音（103），避免超长音频受短语音限制 |
+| **发送导航** | P0 **暂定**：发送时进入与助手的聊天页再投递（后续可改为后台发送、留在列表） |
+| **数据隔离** | App 侧患者工作集、备注、录音均属**当前登录医生私有**（按 OpenIM userID 分库）；换账号互不可见、不上送他人 |
+| **患者双轨** | **医生工作集**写入 Business（按医生归属，私有）；**院级患者信息**经 Business **只读查询接口直连数据底座**，App 不写底座 |
 
 ### 1.3 本期目标（MVP）
 
@@ -34,7 +38,8 @@
 ### 1.4 非目标（本期不做）
 
 - 多选批量发送给 Agent  
-- App 直连 Business 同步患者/文书（可二期）  
+- App 直写数据底座或改写院级主档（仅经 **只读查询** 接口查阅）  
+- App 直连 Business 写文书（文书由 Agent 写入）  
 - Agent 查房 Skill / MCP 落库（Agent 仓另立任务）  
 - HIS 回填 UI  
 - 改会话 / 通讯录 / 我的既有业务逻辑  
@@ -46,7 +51,7 @@
 
 ### 2.1 为什么拆包
 
-- 本模块定位为 **与 DrClawBusiness 对齐的业务域**（患者、文书上下文、后续同步/拉取），会持续增长；不宜堆在 IM 的 `lib/pages/`。  
+- 本模块定位为 **与 DrClawBusiness 对齐的业务域**（医生工作集、底座只读查询、文书上下文、检验检查查阅等），会持续增长；不宜堆在 IM 的 `lib/pages/`。  
 - 命名 `business_workbench` 明确边界：IM 壳 vs Business 业务工作台。  
 - 对齐现有 path 包模式：`openim_common`、`openim_live`。  
 - 主工程保持「IM 壳 + Host 装配」；业务包可独立演进与测试。
@@ -55,9 +60,11 @@
 
 | 方向 | MVP | 后续 |
 |------|-----|------|
-| App → Agent（OpenIM） | 单条录音 + 患者上下文（经 Host 发 IM） | custom 消息等 |
-| App → Business | 本地患者字段对齐 `PatientDTO`；不直连 | 患者同步、文书状态查询等 API（经 Host 或包内 API client） |
-| HIS → Business | 已有拉取文书 API（本包不实现） | — |
+| App → Agent（OpenIM） | 【查房录音】文本 + **文件 105**；进聊天页发送 | custom、后台发送等 |
+| App ↔ Business（医生工作集） | P0 仅本地 | **P2** 工作集保存/列表（按医生归属，§14.A） |
+| App ← Business ← 数据底座 | P0 不直连 | **P2** 只读查询院级患者（§14.B）；P3+ 检验/检查 |
+| App → Business（文书） | 不直写；由 Agent MCP 写文书 | — |
+| HIS → Business | 已有拉取**文书** API | — |
 
 Host 可拆为两类能力（实施时可一个类实现）：
 
@@ -106,19 +113,25 @@ openim_common → business_workbench
 ```dart
 /// 位于 business_workbench，业务侧只依赖此抽象
 abstract class WorkbenchHost {
-  /// Agent 机器人 OpenIM userID
-  String get agentBotUserId;
+  /// 查房投递目标：普通 OpenIM 用户（与好友无异；非编译期 bot 配置）
+  String get assistantUserId;
 
-  /// 打开与助手的单聊（无会话则创建）
+  /// 当前登录用户 OpenIM userID（本地分库用）；未登录为空
+  String get currentUserId;
+
+  /// 从好友中选择/更换助手
+  Future<String?> pickAssistantUser();
+
+  /// 打开与助手的单聊（无会话则创建）；P0 发送前会调用，进入聊天页
   Future<void> openAgentChat();
 
   /// 向当前助手会话发送文本
   Future<void> sendTextToAgent(String text);
 
-  /// 向当前助手会话发送本地语音文件
-  Future<void> sendSoundToAgent({
+  /// 向当前助手会话发送本地**文件**（长录音用 105，非语音 103）
+  Future<void> sendFileToAgent({
     required String filePath,
-    required int durationSec,
+    required String fileName,
   });
 }
 ```
@@ -127,10 +140,14 @@ abstract class WorkbenchHost {
 
 | 方法 | 主工程怎么做 |
 |------|----------------|
-| `agentBotUserId` | 读 `EnvConfig` / `DataSp` / dart-define |
-| `openAgentChat` | `ConversationLogic.toChat(userID: …)` |
-| `sendTextToAgent` | OpenIM `createTextMessage` + send（薄封装，不拉整页 ChatLogic） |
-| `sendSoundToAgent` | `createSoundMessageFromFullPath` + send |
+| `assistantUserId` | 读 `DataSp`（按医生账号记住所选好友） |
+| `pickAssistantUser` | 好友列表选择并写入 DataSp |
+| `currentUserId` | 当前 IM 登录 userID |
+| `openAgentChat` | 未选则先选好友；`toChat` / `startChat`，**进入聊天页** |
+| `sendTextToAgent` | `createTextMessage` + send |
+| `sendFileToAgent` | `createFileMessageFromFullPath` + send（长录音） |
+
+> P0 **不提供** `sendSoundToAgent` 给工作台长录音；聊天里按住说话仍走原有短语音逻辑，与工作台无关。
 
 装配：
 
@@ -172,7 +189,7 @@ DrClawApp/
 │   │   ├── host/workbench_host.dart        # 抽象 Host（IM；P2+ 可扩 Business）
 │   │   ├── workbench_module.dart           # init / routes
 │   │   ├── pages/
-│   │   │   ├── shell/                      # Tab 根：入口列表
+│   │   │   ├── shell/                      # Tab 根：入口宫格
 │   │   │   ├── patients/
 │   │   │   └── recordings/
 │   │   ├── models/
@@ -262,11 +279,11 @@ class WorkbenchEntry {
 ┌────────────── 病房 · 业务工作台（business_workbench）────┐
 │ 1. 患者管理：本地维护                                │
 │ 2. 选患者 → 长录音 → 本地保存                        │
-│ 3. 单条「发给助手」→ WorkbenchHost（主工程 IM）        │
+│ 3. 单条「发给助手」→ openAgentChat（进聊天页）→ 文本 + 文件(105) │
 └─────────────────────┬──────────────────────────────┘
-                      │ OpenIM
+                      │ OpenIM（101 文本 + 105 文件）
 ┌─────────────────────▼──────────────────────────────┐
-│ Agent →（后续）Business → HIS 回填                    │
+│ Agent 转写文件 →（后续）Business → HIS 回填          │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -315,12 +332,22 @@ class WorkbenchEntry {
 
 | 项 | 设计 |
 |----|------|
-| 引擎 | 业务包内 Hive：`wb_patients` / `wb_recordings` |
-| 初始化 | `WorkbenchModule.init()` 打开 box（主工程 `Config.init` 之后调用一次） |
-| 文件目录 | `Documents/workbench/voice/{patientLocalId}/{recordingLocalId}.m4a` |
+| 引擎 | 业务包内 Hive |
+| **用户隔离** | box 名带用户后缀，例如 `wb_patients_{userId}` / `wb_recordings_{userId}`；`userId` 来自 `host.currentUserId` |
+| 切换账号 | 登录成功或 `userId` 变化时关闭旧 box，打开对应用户 box；**禁止**混读 |
+| 退出登录 | 关闭 box；是否物理删除本地文件由产品定（P0 建议**仅关闭、不删文件**，避免误清床旁数据） |
+| 初始化 | `WorkbenchModule.init()` / `onUserChanged(userId)`（主工程登录态变化时回调） |
+| 文件目录 | `Documents/workbench/{userId}/voice/{patientLocalId}/{recordingLocalId}.m4a` |
 
-与聊天 `Documents/voice/` 隔离。
+与聊天 `Documents/voice/` 隔离。未登录时工作台入口可进，但 CRUD/录音提示先登录。
 
+### 5.4 已拍板决策（ADR）
+
+| 编号 | 议题 | 决策 | 备注 |
+|------|------|------|------|
+| ADR-1 | 长录音如何发给 Agent | **文件消息 contentType=105** | 不用 103 语音；文本模板仍先发【查房录音】 |
+| ADR-2 | 发送时是否留在工作台 | **P0 暂定进入聊天页**再发送 | 后续可改为后台发送、列表内反馈 |
+| ADR-3 | 本地数据隔离 | **按登录 OpenIM userID 分库**；医生在 App 维护的数据**仅属于该账号** | 换账号互不可见；工作集 P2 经 Business 换机可拉回；不共享给其他医生 |
 ---
 
 ## 6. 功能设计
@@ -329,10 +356,11 @@ class WorkbenchEntry {
 
 | 功能 | 说明 |
 |------|------|
-| 列表 | 床号/时间排序；搜索；软删 |
-| 新建/编辑 | `patientName` 必填；`patientId` 与 `eventNo` 至少一个 |
-| 详情 | 「开始录音」+ 「该患者录音」 |
-| 删除 | **级联软删录音**并删文件（推荐） |
+| 列表 | 「我的患者」= 医生工作集（本地 + P2 与 Business 同步）；床号/时间排序；搜索 |
+| 新建/编辑工作集 | 医生维护的字段（姓名、床号、备注等）可编辑；**保存到 Business（归属当前医生）** |
+| 从底座选入 | 调用 **院级只读查询**（§14.B），选中后写入**本人工作集**（可带出底座字段作快照） |
+| 详情 | 「开始录音」+ 「该患者录音」；可再查底座刷新展示；P3+ 检验/检查 |
+| 删除 | 从**本人工作集**移除（本地 + Business）；**不**删除底座数据 |
 
 ### 6.2 长录音
 
@@ -345,13 +373,21 @@ class WorkbenchEntry {
 
 ### 6.3 单条发送
 
-1. 校验文件 / 患者 / 时长  
-2. `host.openAgentChat()`  
-3. `host.sendTextToAgent(模板文本)`  
-4. `host.sendSoundToAgent(...)`  
-5. 更新本地 `status`  
+1. 校验已登录、`currentUserId` 非空、文件存在、患者未删、时长 > 0。  
+2. `host.openAgentChat()`（**进入聊天页**，ADR-2）。  
+3. `host.sendTextToAgent(【查房录音】模板)`。  
+4. `host.sendFileToAgent(filePath, fileName)`（**105 文件**，ADR-1；`fileName` 建议含床号+姓名+时长，如 `12床_张三_180s.m4a`）。  
+5. 更新本地 `status`：全程成功 → `sent`；任一步失败 → `failed`（见下）。  
 
-不做：多选批量、custom 110（二期）。
+**失败与重试（P0 最小规则）**
+
+| 情况 | 处理 |
+|------|------|
+| 文本成功、文件失败 | `status=failed`；重试时**只补发文件**（避免重复患者卡）；可选在详情标「上下文已发送」 |
+| 文本失败 | 不发文件；整单 `failed`，重试从文本开始 |
+| 打开会话失败 | 不发送，toast 网络错误或未选助手 |
+
+不做：多选批量、custom 110（二期）；P0 不要求离线发送队列。
 
 ### 6.4 聊天内选患者（概要）
 
@@ -428,22 +464,26 @@ abstract class ChatPatientContext {
 | `chat_logic.dart` | `onTapPatient` → `showPatientPicker` → 按策略发送 |
 | **不改** | 相册 / 文件原有逻辑 |
 
-**显示策略（推荐）**：仅当 `conversation.userID == agentBotUserId` 时传入 `onTapPatient`（只在与助手对话显示）。群聊默认不显示。`agentBotUserId` 与 Host 同源配置。
+**显示策略**：群聊、单聊均显示「患者 / 查房录音」（业务模块已注册即可）。
 
 ### 7.5 选中后的发送策略（P1）
 
-**默认：直接发送上下文消息**（关闭工具箱），模板：
+**默认：直接发送上下文消息**（关闭工具箱），模板对齐旧库 `buildPatientContextText`：
 
 ```text
-【当前患者】
-患者姓名：{patientName}
-床号：{bedNumber}
-患者ID：{patientId}
-就诊号：{eventNo}
-科室：{department}
+以下为患者信息，请结合这些信息回答我的问题：
+
+- 就诊号：{eventNo}
+- 患者ID：{patientId}
+- 姓名：{patientName}
+- 性别：{gender}
+- 年龄：{age}
+- 科室：{department}
+- 床号：{bedNumber}
+…
 ```
 
-与查房录音模板字段一致，仅标题为「当前患者」，便于 Agent 区分「指定患者」与「带录音查房」。
+空字段省略。录音发送对齐旧库 `buildRecordingMessageText`（「请根据以下患者信息和录音文件…」+ 患者信息 + 录音信息）。
 
 备选：写入输入框再手发——易被误改，不推荐作为默认。
 
@@ -517,33 +557,24 @@ abstract class ChatPatientContext {
 
 ## 8. 与 Agent / OpenIM 对接
 
-### 8.1 机器人账号
+### 8.1 助手账号（普通 OpenIM 用户）
 
-配置落在**主工程**（Host 读取）；业务包只读 `host.agentBotUserId`。
+OpenIM 中机器人与普通用户无区别。App **不**使用编译期 bot ID：
+
+- 首次「发给助手」时从**好友列表**选择目标 userID（发送流程内确认/更换，工作台无单独设置入口）  
+- 选择结果按当前医生账号写入 `DataSp`，换机需重选（或后续云端同步）  
+- 业务包只读 `host.assistantUserId` / `pickAssistantUser()`  
 
 ### 8.2 文本模板汇总
 
-| 前缀 | 来源 | 用途 |
+| 前缀/引导语 | 来源 | 用途 |
 |------|------|------|
-| `【查房录音】` | 工作台单条发送录音前 | 患者 + 录音元数据，随后语音 |
-| `【当前患者】` | 聊天工具箱选患者 | 声明后续对话所属患者 |
+| `以下为患者信息…` | 聊天工具箱选患者 | 旧库 `buildPatientContextText` |
+| `请根据以下患者信息和录音文件…` | 工作台/工具箱发录音 | 旧库 `buildRecordingMessageText` |
 
-字段对齐 Business：`patientName` / `bedNumber` / `patientId` / `eventNo` / `department`。
+字段行格式：`- 标签：值`（空值省略）。与旧仓 `patientDisplay.ts` / `messages.ts` 对齐。
 
-查房录音模板：
-
-```text
-【查房录音】
-患者姓名：{patientName}
-床号：{bedNumber}
-患者ID：{patientId}
-就诊号：{eventNo}
-科室：{department}
-本地录音ID：{recordingLocalId}
-时长：{durationSec}秒
-```
-
-随后 Host 发送 `contentType=103` 语音。
+录音场景随后仍发送 **文件消息 105**（本地 m4a）；Agent 结合上文与附件生成文书。
 
 ### 8.3 二期
 
@@ -559,8 +590,9 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | `home_view.dart` | 插入业务工作台 Tab | P0 |
 | `home_binding` / 启动 | `WorkbenchModule.init` + Host | P0 |
 | `app_pages.dart` | 合并 `WorkbenchPages.routes` | P0 |
-| `EnvConfig` / `DataSp` | `agentBotUserId` | P0 |
-| `app_business_workbench_host.dart` | Host（IM 发送） | P0 |
+| `EnvConfig` / `DataSp` | 助手目标改为 DataSp 选好友（无 AGENT_BOT_USER_ID） | P0 |
+| `app_business_workbench_host.dart` | Host：开聊进页、发文本、**发文件**；暴露 `currentUserId` | P0 |
+| 登录态回调 | `WorkbenchModule.onUserChanged(userId)` 切换 Hive | P0 |
 | `workbench` 文案 | 「业务工作台」 | P0 |
 | `ChatToolBox` + `chat_view` / `chat_logic` | `onTapPatient` + `showPatientPicker` | **P1** |
 | `toolboxPatient` 文案 | 「患者」 | **P1** |
@@ -574,9 +606,9 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | 阶段 | 内容 |
 |------|------|
 | **P0** | 建包 + Tab + Host；患者 CRUD；长录音；工作台单条发给助手 |
-| **P1** | **聊天工具箱选患者**（§7）；发送重试；botId 配置；可选当前患者角标 |
-| **P2** | custom 110；批量发送；Business 同步；语音绑定 patientId |
-| **P3** | 业务包更多入口（文书状态、待办等） |
+| **P1** | **聊天工具箱选患者**（§7）；发送重试；可选当前患者角标 |
+| **P2** | **医生工作集落库 Business + 底座只读查询（§14）**；custom 110；批量发送 |
+| **P3** | 患者详情扩展**检验/检查**等底座只读数据；业务包更多入口 |
 
 ---
 
@@ -588,7 +620,9 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | Host 与聊天气泡不一致 | 共用底层发消息 |
 | 患者卡 + 语音被 Agent 拆轮 | Agent 约定关联最近【当前患者】/【查房录音】 |
 | 工具箱对所有会话显示 | 默认仅 Agent 会话显示 |
-| 长录音上传失败 | 限时长/码率；可重试 |
+| 长录音当语音发失败 | **已决策走文件 105**（ADR-1） |
+| 发送打断床旁操作流 | P0 暂进聊天页（ADR-2）；后续可改后台发送 |
+| 多账号数据串库 | **按 userID 分 box/目录**（ADR-3） |
 | openim_common 过重 | 业务包按需依赖 Styles |
 
 ---
@@ -601,7 +635,8 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 - [ ] 业务包无 `import` 主工程 `lib/pages/**`  
 - [ ] 4 Tab：会话 / 通讯录 / 业务工作台 / 我的；前三无回归  
 - [ ] 患者 CRUD、长录音（>60s）、列表播放删除  
-- [ ] 单条「发给助手」可见患者文本 + 语音  
+- [ ] 单条「发给助手」：进入助手聊天页，可见【查房录音】文本 + **文件气泡**（非语音气泡）  
+- [ ] 换账号后患者/录音列表隔离，互不可见  
 - [ ] 无多选批量发送  
 
 ### P1（聊天选患者）
@@ -615,11 +650,184 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 - [architecture.md](./architecture.md)  
 - [message_types_alignment.md](./message_types_alignment.md)  
 - Agent：[DRCLAW_OPENIM_CHANNEL_zh.md](../../DrClawAgent/docs/DRCLAW_OPENIM_CHANNEL_zh.md)  
-- Business：[病历文书接口文档.md](../../DrClawBusiness/docs/病历文书接口文档.md)  
+- Business：[病历文书接口文档.md](../../DrClawBusiness/docs/病历文书接口文档.md)；患者双轨见本文 **§14**  
 
 ---
 
-## 14. 修订记录
+## 14. 患者双轨：医生工作集 + 底座只读查询
+
+> 分期：**P2** 工作集落库 + 底座查询；**P3** 检验/检查等只读扩展  
+> **定位**：两条线互不混淆——**医生在 App 维护的患者**写入 Business 且**只属于该医生**；**院级患者信息**由 Business 新增**只读查询接口直连数据底座**，App/医生不可写底座。
+
+### 14.1 总览
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ A. 医生工作集（可读写，按医生归属）                                │
+│    App ──save/list/delete──► Business（doctor_patient 等工作集表） │
+│    换账号互不可见；换机可从 Business 拉回「我的患者」               │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ B. 院级患者信息（只读，直连数据底座）                              │
+│    App ──query──► Business 只读 API ──► 统一数据底座               │
+│    不落医生工作集也可查；选入工作集时再走 A 的 save                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| 数据 | 存哪 | 归属 | App |
+|------|------|------|-----|
+| 医生「我的患者」/备注等 | Business 工作集表 + 本地缓存 | **当前医生** | 读写本人数据 |
+| 院级患者信息 | 数据底座（经 Business 代理查询） | 院内共享源 | **只读查询** |
+| 检验 / 检查等 | 数据底座（后续同类只读 API） | 院内 | 只读 |
+| 查房文书 | Business 文书表 | 业务共用 | App 不写；Agent 写 |
+| 查房录音文件 | OpenIM | 会话侧 | 与患者表无关 |
+
+> 现有 `POST /api/business/patient/list|save` 面向院级 `patient` 表、**无医生归属**，**不宜**直接当作 App「我的患者」API。工作集应**新建**归属表与接口；底座查询亦**新建**只读接口，避免与旧 CRUD 语义混用。
+
+### 14.2 原则
+
+| 原则 | 说明 |
+|------|------|
+| 工作集落库 | App 维护的患者须保存到 Business，便于换机恢复、多端一致 |
+| 医生私有 | 工作集按 `doctorUserId`（建议 = OpenIM `userID`）隔离；list/save 强制带当前医生身份 |
+| 底座只读 | 院级查询接口**禁止写底座**；Business 内不做医生侧对底座的 upsert |
+| 选入可组合 | 底座查到患者 → 医生确认 → `save` 进本人工作集（可存底座字段快照） |
+| 业务键 | 工作集与文书仍用 `eventNo` + `patientId` 对齐 |
+
+### 14.3 A · 医生工作集 API（Business 新建）
+
+建议路径（名称可评审）：
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/business/doctor-patient/list` | POST | 仅返回 **当前医生** 的工作集（分页） |
+| `/api/business/doctor-patient/save` | POST | 新增/更新本人工作集项（upsert） |
+| `/api/business/doctor-patient/delete` | POST/DELETE | 从本人工作集移除（软删） |
+
+**鉴权**：请求头 `appId` + 医生身份（推荐：App 传 OpenIM `userID`，或后续医院员工 token；服务端必须以鉴权结果为准，**禁止**信任客户端随意指定他人 `doctorUserId`）。
+
+**建议表 `doctor_patient`（示意）**：
+
+| 字段 | 说明 |
+|------|------|
+| `id` | 主键 |
+| `doctor_user_id` | 医生归属（OpenIM userID） |
+| `event_no` / `patient_id` | 业务键 |
+| `patient_name`、床号、科室等 | 工作集展示字段（可来自手填或底座快照） |
+| `remark` / `note` | 医生备注（属工作集，非底座） |
+| `platform_snapshot_at` | 可选：上次从底座带入时间 |
+| `create_time` / `update_time` / `deleted` | 常规 |
+
+唯一约束建议：`(doctor_user_id, event_no, patient_id)`（同一医生下同一住院不重复）。
+
+**App Host**：
+
+```dart
+abstract class WorkbenchBusinessHost {
+  String get businessBaseUrl;
+  String get businessAppId;
+
+  /// A. 医生工作集
+  Future<DoctorPatientPage> listMyPatients({int pageNum, int pageSize});
+  Future<DoctorPatient> saveMyPatient(DoctorPatientSave input);
+  Future<void> deleteMyPatient({required String id}); // 或按业务键
+
+  /// B. 底座只读查询（见 14.4）
+  Future<PlatformPatientPage> queryPlatformPatients(PlatformPatientQuery q);
+}
+```
+
+**本地同步**：Hive 仍按 `userId` 分库作离线缓存；有网时以 Business 工作集为准合并；`dirty` 可推送 `saveMyPatient`。
+
+### 14.4 B · 底座只读查询 API（Business 新建）
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/business/platform-patient/query` | POST | **只读**；Business **直连数据底座**查询并原样/映射返回 |
+
+**行为约束**：
+
+- 仅 GET/QUERY 语义；**无** save/update/delete  
+- Business **不写**底座；是否落本地短时缓存由 Business 自定，对 App 仍表现为只读查询  
+- 查询条件示例：`patientId`、`eventNo`、姓名、科室/病区、床号（以底座能力为准）  
+- 返回字段与底座对齐，再映射为 App 可用的 `PlatformPatient`（含 `patientId`/`eventNo`/姓名/床号等）
+
+**配置（Business）**：底座 baseUrl、凭证、超时等；与现有 `patient` 表 CRUD 解耦。
+
+**与旧 `patient` 表关系**：旧表可保留给 admin/MCP/文书侧过渡；院级床旁查阅以 **platform-patient/query** 为准，避免「表内数据是否已同步底座」歧义。
+
+### 14.5 App 交互流程
+
+```
+「我的患者」列表 ◄── listMyPatients ── Business 工作集
+       │
+       ├─ 手动新建/编辑 ──► saveMyPatient
+       │
+       └─ 「从院内检索」──► queryPlatformPatients（底座）
+                │
+                └─ 选中「加入我的患者」──► saveMyPatient（写入工作集快照）
+```
+
+详情页可提供「刷新院内信息」：再调 `queryPlatformPatients`，用返回值更新展示；是否写回工作集快照由医生确认或自动（产品定）。
+
+### 14.6 本地模型要点
+
+| 字段 | 说明 |
+|------|------|
+| `businessWorksetId` | 工作集服务端 `id` |
+| `doctorUserId` | 当前医生（与分库一致） |
+| `syncStatus` | `local_only` / `synced` / `dirty` / `error` |
+| `source` | `manual` / `from_platform` |
+| 业务字段 | 与工作集 DTO 对齐 |
+| `platformSyncedAt` | 可选：最近一次底座对照时间 |
+
+录音、文件路径仍仅本机 + OpenIM，不进工作集表。
+
+### 14.7 UI
+
+| 入口 | 行为 |
+|------|------|
+| 我的患者 | 刷新 = 拉工作集；展示同步状态 |
+| 添加 | 手填 **或** 「院内检索」（底座只读）后加入 |
+| 详情 | 可编辑工作集字段并保存；院内信息区只读；录音；P3 检验/检查 |
+| 删除 | 仅移出我的患者 |
+
+### 14.8 检验 / 检查（P3+）
+
+与 §14.B 同模式：Business 只读 API **直连底座**（如 `/api/business/platform-lab/query`），挂在患者详情；不写底座。
+
+### 14.9 与查房闭环
+
+```
+底座 ──只读 query──► Business ──► App 展示 / 选入工作集
+                                      │
+医生工作集 ◄── save/list ─────────────┘
+       │
+       ▼ 选患者 + 录音 → OpenIM → Agent → Business 文书 → HIS
+```
+
+文书仍按 `eventNo`/`patientId` 关联；不依赖把医生工作集当成院级主档。
+
+### 14.10 验收（P2）
+
+- [ ] 医生 A 的工作集 save/list，医生 B **不可见**  
+- [ ] 工作集变更写入 Business；换机同账号可拉回  
+- [ ] `platform-patient/query` 只读且直连底座；App **无**写底座入口  
+- [ ] 底座检索结果可「加入我的患者」并出现在工作集  
+- [ ] 无网可用本地缓存工作集选人录音；恢复网络可同步 dirty  
+
+### 14.11 ADR
+
+| 编号 | 决策 |
+|------|------|
+| ADR-4 | **双轨**：医生工作集读写落 Business（按医生归属）；院级患者信息经 **新建只读 API 直连数据底座** |
+| ADR-5 | 不复用无归属的旧 `patient/save` 作为 App「我的患者」；检验/检查等同属底座只读扩展 |
+| ADR-3 | App 本地仍按 OpenIM userID 分库；与 Business `doctor_user_id` 一致 |
+
+---
+
+## 15. 修订记录
 
 | 日期 | 说明 |
 |------|------|
@@ -627,3 +835,11 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | 2026-07-21 | 增补：独立包、Host 反转依赖、主工程最小化挂载 |
 | 2026-07-21 | 定名 `business_workbench` /「业务工作台」；定位为与 DrClawBusiness 交互的业务入口 |
 | 2026-07-21 | 增补 §7：聊天工具箱选患者（对齐相册/文件）；【当前患者】模板；P1 分期与验收 |
+| 2026-07-21 | ADR：长录音发文件 105；发送暂进聊天页；本地按 userID 隔离；Host 改为 sendFileToAgent |
+| 2026-07-21 | §14 患者同步改为只读拉取；预留检验/检查；ADR-4/5 |
+| 2026-07-21 | §14 改为**双轨**：工作集落库 Business + 底座只读 query 直连；ADR-4/5 修订 |
+| 2026-07-21 | **P0 开始实施**：新建 `business_workbench` 包；主工程挂 Tab/Host/路由；本地患者+长录音+发文件105 |
+| 2026-07-21 | 助手改为普通 OpenIM 用户：好友选择 + DataSp 记忆；移除 AGENT_BOT_USER_ID |
+| 2026-07-21 | **P1**：聊天工具箱选患者 → 发送【当前患者】；仅单聊/助手会话显示 |
+| 2026-07-21 | 聊天工具箱增加「查房录音」：选本地录音 →【查房录音】文本 + 文件 105 |
+| 2026-07-21 | 对话拼接文案对齐旧库 DrClawApp（患者上下文 / 录音生成病历模板） |

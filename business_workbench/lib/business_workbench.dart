@@ -1,0 +1,12 @@
+/// 业务工作台对外导出入口。
+export 'host/workbench_host.dart';
+export 'models/local_patient.dart';
+export 'models/local_recording.dart';
+export 'pages/patients/patient_picker.dart';
+export 'pages/recordings/recording_picker.dart';
+export 'pages/shell/workbench_page.dart';
+export 'services/patient_context_formatter.dart';
+export 'store/workbench_store.dart';
+export 'theme/wb_theme.dart';
+export 'workbench_module.dart';
+export 'workbench_routes.dart';

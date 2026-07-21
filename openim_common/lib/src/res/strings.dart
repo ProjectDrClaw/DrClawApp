@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:get/get.dart';
+import 'package:sprintf/sprintf.dart';
 
 import 'lang/en_US.dart';
 import 'lang/zh_CN.dart';
@@ -265,6 +266,10 @@ class StrRes {
   static String get toolboxCard => 'toolboxCard'.tr;
 
   static String get toolboxFile => 'toolboxFile'.tr;
+
+  static String get toolboxPatient => 'toolboxPatient'.tr;
+
+  static String get toolboxWardRecording => 'toolboxWardRecording'.tr;
 
   static String get toolboxLocation => 'toolboxLocation'.tr;
 
@@ -1089,6 +1094,9 @@ class StrRes {
   static String get nMonth => 'nMonth'.tr;
 
   static String get talkTooShort => 'talkTooShort'.tr;
+
+  static String voiceRemainSeconds(int sec) =>
+      sprintf('voiceRemainSeconds'.tr, [sec]);
 
   static String get quoteContentBeRevoked => 'quoteContentBeRevoked'.tr;
 

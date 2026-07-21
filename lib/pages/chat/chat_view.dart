@@ -179,6 +179,11 @@ class ChatPage extends StatelessWidget {
                   toolbox: ChatToolBox(
                     onTapAlbum: logic.onTapAlbum,
                     onTapFile: logic.onTapFile,
+                    onTapPatient:
+                        logic.showPatientToolbox ? logic.onTapPatient : null,
+                    onTapWardRecording: logic.showPatientToolbox
+                        ? logic.onTapWardRecording
+                        : null,
                     onTapCall: logic.isGroupChat ? null : logic.call,
                   ),
                   voiceRecordBar: ChatVoiceRecordBar(

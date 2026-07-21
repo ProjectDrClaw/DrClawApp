@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:business_workbench/business_workbench.dart';
 import 'package:collection/collection.dart';
 import 'package:common_utils/common_utils.dart';
 import 'package:file_picker/file_picker.dart';
@@ -437,6 +438,50 @@ class ChatLogic extends SuperController {
       return;
     }
     await sendFile(path: path, fileName: file.name);
+  }
+
+  /// 会话工具箱显示「患者 / 查房录音」（群聊、单聊均可用）
+  bool get showPatientToolbox => Get.isRegistered<WorkbenchHost>();
+
+  void onTapPatient() async {
+    closeToolbox();
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final patient = await showPatientPicker(ctx);
+    if (patient == null) return;
+    final text = formatPatientContext(patient);
+    final message = await OpenIM.iMManager.messageManager.createTextMessage(
+      text: text,
+    );
+    await _sendMessage(message);
+  }
+
+  void onTapWardRecording() async {
+    closeToolbox();
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final picked = await showRecordingPicker(ctx);
+    if (picked == null) return;
+    final r = picked.recording;
+    if (r.durationSec < 1) {
+      IMViews.showToast('录音时长过短');
+      return;
+    }
+    try {
+      final textMsg = await OpenIM.iMManager.messageManager.createTextMessage(
+        text: picked.contextText,
+      );
+      await _sendMessage(textMsg);
+      await sendFile(path: r.filePath, fileName: picked.fileName);
+      // 标记本地已发送（与工作台列表状态对齐）
+      r.contextSent = true;
+      r.status = RecordingStatus.sent;
+      r.sentAt = DateTime.now().millisecondsSinceEpoch;
+      r.updatedAt = r.sentAt!;
+      await WorkbenchStore.instance.saveRecording(r);
+    } catch (e) {
+      IMViews.showToast('发送失败：$e');
+    }
   }
 
   void _maybeOpenAtPicker() {

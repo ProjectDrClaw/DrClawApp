@@ -245,7 +245,11 @@ class _ChatItemViewState extends State<ChatItemView> {
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: widget.onClickItemView,
-        child: child ?? ChatText(text: StrRes.unsupportedMessage),
+        child: child ??
+            ChatText(
+              isISend: _isISend,
+              text: StrRes.unsupportedMessage,
+            ),
       ),
     );
   }

@@ -20,6 +20,8 @@ class DataSp {
   static const _chatBackground = '%s_chatBackground_%s';
   static const _loginType = 'loginType';
   static const _meetingInProgress = '%_meetingInProgress';
+  /// 业务工作台：查房投递目标（普通 OpenIM 用户）
+  static const _workbenchAssistantUserId = '%s_workbenchAssistantUserId';
 
   DataSp._();
 
@@ -181,5 +183,18 @@ class DataSp {
 
   static Future<bool>? removeMeetingInProgress() {
     return SpUtil().remove(getKey(_meetingInProgress));
+  }
+
+  /// 工作台助手目标 userID（按当前登录医生隔离）
+  static String? getWorkbenchAssistantUserId() {
+    return SpUtil().getString(getKey(_workbenchAssistantUserId));
+  }
+
+  static Future<bool>? putWorkbenchAssistantUserId(String userId) {
+    return SpUtil().putString(getKey(_workbenchAssistantUserId), userId);
+  }
+
+  static Future<bool>? removeWorkbenchAssistantUserId() {
+    return SpUtil().remove(getKey(_workbenchAssistantUserId));
   }
 }

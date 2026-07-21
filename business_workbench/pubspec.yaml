@@ -1,0 +1,32 @@
+name: business_workbench
+description: Dr.Claw 业务工作台：患者工作集、查房长录音，经 Host 对接 IM / Business。
+version: 0.1.0
+publish_to: "none"
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.6.5
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  uuid: ^4.2.1
+  path_provider: ^2.0.13
+  path: ^1.9.0
+  record: ^6.0.0
+  permission_handler: ^11.0.1
+  just_audio: ^0.10.5
+  flutter_screenutil: ^5.7.0
+  openim_common:
+    path: ../openim_common
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

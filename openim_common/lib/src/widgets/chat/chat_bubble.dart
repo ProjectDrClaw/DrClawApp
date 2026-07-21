@@ -33,8 +33,9 @@ class ChatBubble extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         alignment: alignment,
         decoration: BoxDecoration(
-          color:
-              backgroundColor ?? (isISend ? Styles.c_CCE7FE : Styles.c_F4F5F7),
+          // 发送气泡用品牌主色，配合白色文字（旧浅蓝底+白字会「白乎乎」看不清）
+          color: backgroundColor ??
+              (isISend ? const Color(0xFF4A7DD9) : Styles.c_F4F5F7),
           borderRadius: borderRadius(isISend),
         ),
         child: child,

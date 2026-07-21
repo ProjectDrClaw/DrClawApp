@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
+import 'package:business_workbench/business_workbench.dart';
 
 import '../pages/chat/chat_binding.dart';
+
 import '../pages/chat/chat_setup/chat_setup_binding.dart';
 import '../pages/chat/chat_setup/chat_setup_view.dart';
 import '../pages/chat/chat_view.dart';
@@ -103,6 +105,7 @@ class AppPages {
       );
 
   static final routes = <GetPage>[
+    ...WorkbenchModule.routes,
     _pageBuilder(
       name: AppRoutes.splash,
       page: () => SplashPage(),
