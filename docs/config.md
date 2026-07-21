@@ -22,6 +22,16 @@
 flutter run --dart-define=ENV=dev --dart-define=SERVER_HOST=10.110.177.132
 ```
 
+常用 Android 打包：
+
+```bash
+# 默认开发环境
+flutter build apk
+
+# 生产环境 + 指定 host（当前内网示例）
+flutter build apk --dart-define=ENV=prod --dart-define=SERVER_HOST=10.110.177.132
+```
+
 优先级：**应用内 DataSp 服务端配置** > `SERVER_HOST` > 环境默认 host。
 
 IP 模式默认端口：

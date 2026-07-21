@@ -51,8 +51,9 @@ Android 签名（开发/正式同一证书，已入库）见 [docs/config.md](./
 ## 构建
 
 ```bash
-flutter build apk                                    # Android
-flutter build apk --dart-define=ENV=prod             # 指定环境
+flutter build apk                                    # Android（默认 ENV=dev）
+flutter build apk --dart-define=ENV=prod             # 生产占位域名（需改 prodHost）
+flutter build apk --dart-define=ENV=prod --dart-define=SERVER_HOST=10.110.177.132  # 指定 host（示例：内网）
 flutter build ipa --dart-define=ENV=prod             # iOS，需 macOS
 ```
 
