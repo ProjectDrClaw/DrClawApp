@@ -6,19 +6,27 @@ class ChatToolBox extends StatelessWidget {
   const ChatToolBox({
     super.key,
     this.onTapAlbum,
+    this.onTapFile,
     this.onTapCall,
   });
   final Function()? onTapAlbum;
+  final Function()? onTapFile;
   final Function()? onTapCall;
 
   @override
   Widget build(BuildContext context) {
-    final items = [
+    final items = <ToolboxItemInfo>[
       ToolboxItemInfo(
         text: StrRes.toolboxAlbum,
         icon: ImageRes.toolboxAlbum,
         onTap: () => Permissions.photos(onTapAlbum),
       ),
+      if (onTapFile != null)
+        ToolboxItemInfo(
+          text: StrRes.toolboxFile,
+          icon: ImageRes.toolboxFile,
+          onTap: onTapFile,
+        ),
       if (onTapCall != null)
         ToolboxItemInfo(
           text: StrRes.toolboxCall,

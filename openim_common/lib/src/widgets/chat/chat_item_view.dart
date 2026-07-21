@@ -182,6 +182,24 @@ class _ChatItemViewState extends State<ChatItemView> {
             isISend: _isISend,
             message: _message,
           );
+    } else if (_message.isVideoType) {
+      child = widget.mediaItemBuilder?.call(context, _message) ??
+          ChatVideoView(
+            isISend: _isISend,
+            message: _message,
+          );
+    } else if (_message.isVoiceType) {
+      isBubbleBg = true;
+      child = ChatVoiceView(
+        isISend: _isISend,
+        message: _message,
+      );
+    } else if (_message.isFileType) {
+      isBubbleBg = true;
+      child = ChatFileView(
+        isISend: _isISend,
+        message: _message,
+      );
     } else if (_message.isNotificationType) {
       if (_message.contentType == MessageType.groupInfoSetAnnouncementNotification) {
         final map = json.decode(_message.notificationElem!.detail!);

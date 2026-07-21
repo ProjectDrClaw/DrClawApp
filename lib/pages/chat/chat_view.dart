@@ -101,13 +101,15 @@ class ChatPage extends StatelessWidget {
     final isOutgoing = message.sendID == OpenIM.iMManager.userID;
 
     if (message.isVideoType) {
-      return const SizedBox();
-    } else {
-      return ChatPictureView(
+      return ChatVideoView(
         isISend: isOutgoing,
         message: message,
       );
     }
+    return ChatPictureView(
+      isISend: isOutgoing,
+      message: message,
+    );
   }
 
   CustomTypeInfo? _buildCustomTypeItemView(_, Message message) {
@@ -176,9 +178,14 @@ class ChatPage extends StatelessWidget {
                   onSend: (v) => logic.sendTextMsg(),
                   toolbox: ChatToolBox(
                     onTapAlbum: logic.onTapAlbum,
+                    onTapFile: logic.onTapFile,
                     onTapCall: logic.isGroupChat ? null : logic.call,
                   ),
-                  voiceRecordBar: const SizedBox(),
+                  voiceRecordBar: ChatVoiceRecordBar(
+                    onCompleted: (duration, path) {
+                      logic.sendSound(path: path, duration: duration);
+                    },
+                  ),
                 ),
                 child: ChatListView(
                   onTouch: () => logic.closeToolbox(),

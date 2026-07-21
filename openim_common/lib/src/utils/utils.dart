@@ -692,6 +692,18 @@ class IMUtils {
         case MessageType.picture:
           content = '[${StrRes.picture}]';
           break;
+        case MessageType.voice:
+          content = '[${StrRes.voice}]';
+          break;
+        case MessageType.video:
+          content = '[${StrRes.video}]';
+          break;
+        case MessageType.file:
+          final name = message.fileElem?.fileName;
+          content = name != null && name.isNotEmpty
+              ? '[${StrRes.file}] $name'
+              : '[${StrRes.file}]';
+          break;
         case MessageType.custom:
           var data = message.customElem!.data;
           var map = json.decode(data!);

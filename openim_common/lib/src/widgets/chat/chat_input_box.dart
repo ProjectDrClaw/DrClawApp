@@ -1,6 +1,5 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/openim_common.dart';
 
@@ -45,7 +44,7 @@ class ChatInputBox extends StatefulWidget {
   State<ChatInputBox> createState() => _ChatInputBoxState();
 }
 
-class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateMixin */ {
+class _ChatInputBoxState extends State<ChatInputBox> {
   bool _toolsVisible = false;
   bool _leftKeyboardButton = false;
   bool _sendButtonVisible = false;
@@ -101,6 +100,13 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
                 child: Row(
                   children: [
                     12.horizontalSpace,
+                    (_leftKeyboardButton
+                        ? (ImageRes.openKeyboard.toImage..onTap = onTapLeftKeyboard)
+                        : (ImageRes.openVoice.toImage..onTap = onTapSpeak))
+                      ..width = 32.w
+                      ..height = 32.h
+                      ..opacity = _opacity,
+                    12.horizontalSpace,
                     Expanded(
                       child: Stack(
                         children: [
@@ -116,11 +122,13 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
                       ),
                     ),
                     12.horizontalSpace,
-                    (_sendButtonVisible ? ImageRes.sendMessage : ImageRes.openToolbox).toImage
-                      ..width = 32.w
-                      ..height = 32.h
-                      ..opacity = _opacity
-                      ..onTap = _sendButtonVisible ? send : toggleToolbox,
+                    if (!_leftKeyboardButton)
+                      (_sendButtonVisible ? ImageRes.sendMessage : ImageRes.openToolbox)
+                          .toImage
+                        ..width = 32.w
+                        ..height = 32.h
+                        ..opacity = _opacity
+                        ..onTap = _sendButtonVisible ? send : toggleToolbox,
                     12.horizontalSpace,
                   ],
                 ),
@@ -180,18 +188,19 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
     });
   }
 
+  void onTapSpeak() {
+    if (!widget.enabled) return;
+    Permissions.microphone(() => setState(() {
+          _leftKeyboardButton = true;
+          _toolsVisible = false;
+          unfocus();
+        }));
+  }
+
   void onTapLeftKeyboard() {
     if (!widget.enabled) return;
     setState(() {
       _leftKeyboardButton = false;
-      _toolsVisible = false;
-      focus();
-    });
-  }
-
-  void onTapRightKeyboard() {
-    if (!widget.enabled) return;
-    setState(() {
       _toolsVisible = false;
       focus();
     });

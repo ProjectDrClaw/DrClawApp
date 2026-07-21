@@ -5,11 +5,14 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:common_utils/common_utils.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:get/get.dart';
+import 'package:mime/mime.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pull_to_refresh_new/pull_to_refresh.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sprintf/sprintf.dart';
@@ -86,6 +89,10 @@ class ChatLogic extends SuperController {
   bool _isFirstLoad = true;
 
   final copyTextMap = <String?, String?>{};
+
+  /// 待发送的 @ 成员（群聊）
+  final atUserInfoList = <AtUserInfo>[];
+  bool _openingAtPicker = false;
 
   String? groupOwnerID;
 
@@ -312,6 +319,8 @@ class ChatLogic extends SuperController {
       _debounce = Timer(1.seconds, () {
         sendTypingMsg(focus: false);
       });
+
+      _maybeOpenAtPicker();
     });
 
     focusNode.addListener(() {
@@ -343,9 +352,19 @@ class ChatLogic extends SuperController {
   void sendTextMsg() async {
     var content = IMUtils.safeTrim(inputCtrl.text);
     if (content.isEmpty) return;
-    Message message = await OpenIM.iMManager.messageManager.createTextMessage(
-      text: content,
-    );
+
+    Message message;
+    if (isGroupChat && atUserInfoList.isNotEmpty) {
+      message = await OpenIM.iMManager.messageManager.createTextAtMessage(
+        text: content,
+        atUserIDList: atUserInfoList.map((e) => e.atUserID!).toList(),
+        atUserInfoList: List<AtUserInfo>.from(atUserInfoList),
+      );
+    } else {
+      message = await OpenIM.iMManager.messageManager.createTextMessage(
+        text: content,
+      );
+    }
 
     _sendMessage(message);
   }
@@ -363,6 +382,101 @@ class ChatLogic extends SuperController {
       messageList.add(message);
       tempMessages.add(message);
     }
+  }
+
+  Future sendVideo({
+    required String videoPath,
+    required String snapshotPath,
+    required int duration,
+    String? videoType,
+    bool sendNow = true,
+  }) async {
+    final type = videoType ?? lookupMimeType(videoPath) ?? 'video/mp4';
+    final message = await OpenIM.iMManager.messageManager.createVideoMessageFromFullPath(
+      videoPath: videoPath,
+      videoType: type,
+      duration: duration,
+      snapshotPath: snapshotPath,
+    );
+    if (sendNow) {
+      return _sendMessage(message);
+    } else {
+      messageList.add(message);
+      tempMessages.add(message);
+    }
+  }
+
+  Future sendFile({required String path, required String fileName}) async {
+    final message = await OpenIM.iMManager.messageManager.createFileMessageFromFullPath(
+      filePath: path,
+      fileName: fileName,
+    );
+    return _sendMessage(message);
+  }
+
+  Future sendSound({required String path, required int duration}) async {
+    if (duration < 1) {
+      IMViews.showToast(StrRes.talkTooShort);
+      return;
+    }
+    final message = await OpenIM.iMManager.messageManager.createSoundMessageFromFullPath(
+      soundPath: path,
+      duration: duration,
+    );
+    return _sendMessage(message);
+  }
+
+  void onTapFile() async {
+    closeToolbox();
+    final result = await FilePicker.platform.pickFiles(withData: false);
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    final path = file.path;
+    if (path == null || path.isEmpty) {
+      IMViews.showToast(StrRes.unsupportedMessage);
+      return;
+    }
+    await sendFile(path: path, fileName: file.name);
+  }
+
+  void _maybeOpenAtPicker() {
+    if (!isGroupChat || groupInfo == null || _openingAtPicker) return;
+    final text = inputCtrl.text;
+    if (!text.endsWith('@')) return;
+    _openingAtPicker = true;
+    Future.microtask(() async {
+      try {
+        await onTapAtMember();
+      } finally {
+        _openingAtPicker = false;
+      }
+    });
+  }
+
+  Future<void> onTapAtMember() async {
+    if (!isGroupChat || groupInfo == null) return;
+    final list = await AppNavigator.startGroupMemberList(
+      groupInfo: groupInfo!,
+      opType: GroupMemberOpType.at,
+    );
+    if (list is! List<GroupMembersInfo> || list.isEmpty) return;
+
+    var text = inputCtrl.text;
+    if (text.endsWith('@')) {
+      text = text.substring(0, text.length - 1);
+    }
+
+    final buffer = StringBuffer(text);
+    for (final member in list) {
+      final uid = member.userID;
+      final nick = member.nickname ?? uid ?? '';
+      if (uid == null || uid.isEmpty) continue;
+      atUserInfoList.removeWhere((e) => e.atUserID == uid);
+      atUserInfoList.add(AtUserInfo(atUserID: uid, groupNickname: nick));
+      buffer.write('@$nick ');
+    }
+    inputCtrl.text = buffer.toString();
+    inputCtrl.selection = TextSelection.collapsed(offset: inputCtrl.text.length);
   }
 
   sendForwardRemarkMsg(
@@ -517,8 +631,9 @@ class ChatLogic extends SuperController {
   }
 
   void _reset(Message message) {
-    if (message.contentType == MessageType.text) {
+    if (message.contentType == MessageType.text || message.contentType == MessageType.atText) {
       inputCtrl.clear();
+      atUserInfoList.clear();
     }
   }
 
@@ -617,6 +732,9 @@ class ChatLogic extends SuperController {
         case AssetType.image:
           await sendPicture(path: path, sendNow: sendNow);
           break;
+        case AssetType.video:
+          await _sendVideoAsset(asset, path: path, sendNow: sendNow);
+          break;
         default:
           break;
       }
@@ -624,6 +742,31 @@ class ChatLogic extends SuperController {
         originalFile.deleteSync();
       }
     }
+  }
+
+  Future _sendVideoAsset(
+    AssetEntity asset, {
+    required String path,
+    bool sendNow = true,
+  }) async {
+    final durationSec = asset.duration;
+    final thumb = await asset.thumbnailDataWithSize(const ThumbnailSize(960, 960));
+    if (thumb == null) {
+      IMViews.showToast(StrRes.unsupportedMessage);
+      return;
+    }
+    final dir = await getTemporaryDirectory();
+    final snapPath =
+        '${dir.path}/video_snap_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await File(snapPath).writeAsBytes(thumb);
+    final mime = lookupMimeType(path) ?? 'video/mp4';
+    await sendVideo(
+      videoPath: path,
+      snapshotPath: snapPath,
+      duration: durationSec <= 0 ? 1 : durationSec,
+      videoType: mime,
+      sendNow: sendNow,
+    );
   }
 
   void onTapDirectionalMessage() async {
@@ -876,7 +1019,7 @@ class ChatLogic extends SuperController {
   bool isNotificationType(Message message) => message.contentType! >= 1000;
 
   Map<String, String> getAtMapping(Message message) {
-    return {};
+    return IMUtils.getAtMapping(message, {});
   }
 
   void _checkInBlacklist() async {
