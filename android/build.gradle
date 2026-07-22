@@ -29,6 +29,32 @@ subprojects {
     project.layout.buildDirectory.set(newSubprojectBuildDir)
 }
 
+// AGP 8+ 要求每个 Android library 声明 namespace。
+// 部分旧插件（如 uri_to_file 1.0.0）未声明，在配置阶段就会失败，需在 apply 时补上。
+subprojects { project ->
+    project.plugins.withId("com.android.library") {
+        def androidExt = project.extensions.findByName("android")
+        if (androidExt == null) {
+            return
+        }
+        def existing = androidExt.namespace?.toString()?.trim()
+        if (existing) {
+            return
+        }
+        def pkg = null
+        def manifest = project.file("src/main/AndroidManifest.xml")
+        if (manifest.exists()) {
+            pkg = new XmlParser().parse(manifest).attribute("package")
+        }
+        if (!pkg && project.group != null && project.group.toString().trim()) {
+            pkg = project.group.toString()
+        }
+        if (pkg) {
+            androidExt.namespace = pkg
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
