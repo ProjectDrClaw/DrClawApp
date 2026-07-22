@@ -80,6 +80,6 @@ cd ios && rm -f Podfile.lock && rm -rf Pods && pod install
 
 替换 `launcher_icon/` 下源图后执行图标与启动图生成命令，见 [config.md](./config.md#品牌资源)。
 
-### 15. 如何打 GitHub Release APK？
+### 15. 如何用 GitHub Actions 打 APK？
 
-在 GitHub 创建 Release，或手动运行工作流 `Release Android`。详见 [config.md](./config.md#github-release-自动打包)。
+在 Actions 里手动运行工作流 `Release Android`。详见 [config.md](./config.md#github-actions-手动打包)。

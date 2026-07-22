@@ -65,16 +65,14 @@ IP 模式默认端口：
 
 > **安全：** 证书与密码随仓库分发，仓库必须保持**私有**。若曾公开过，请立即轮换证书。仍建议另地备份 `drclaw.jks`。
 
-### GitHub Release 自动打包
+### GitHub Actions 手动打包
 
 工作流 [`.github/workflows/release-android.yml`](../.github/workflows/release-android.yml)：
 
-- **触发：** 发布 GitHub Release，或 Actions 里手动 Run workflow  
-- **日常 push/PR 不执行**
+- **触发：** 仅 Actions 里手动 Run workflow（不随 Release / push / PR 执行）
 - **签名：** 直接使用仓库内 `drclaw.jks` + `key.properties`（无需再配 Secrets）
-- **产物：** 上传为 Actions Artifact；若由 Release 触发，同时附加到该 Release
-
-手动触发时可选择 `ENV=prod|dev`。
+- **产物：** 上传为 Actions Artifact
+- **参数：** `ENV=prod|dev`，`server_host` 默认 `10.110.177.132`
 
 ## 品牌资源
 

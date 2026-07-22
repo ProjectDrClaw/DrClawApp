@@ -28,7 +28,7 @@ DrClawApp/
 ├── android/             # 含团队统一签名 drclaw.jks
 ├── ios/
 ├── docs/
-└── .github/workflows/   # 仅 Release / 手动触发时打 APK
+└── .github/workflows/   # 仅手动触发时打 APK
 ```
 
 ### 主应用 `lib/`

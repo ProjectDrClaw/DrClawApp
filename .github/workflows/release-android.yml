@@ -1,10 +1,8 @@
-# 仅在发布 Release（或手动触发）时构建 Android 包，日常 push/PR 不执行
+# 仅手动触发构建 Android 包，日常 push/PR / Release 不执行
 # 签名使用仓库内团队统一证书：android/app/drclaw.jks + key.properties
 name: Release Android
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       env:
@@ -15,13 +13,21 @@ on:
         options:
           - prod
           - dev
+      server_host:
+        description: 服务端地址（dart-define SERVER_HOST，默认内网）
+        required: true
+        default: "10.110.177.132"
+        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      BUILD_ENV: ${{ inputs.env }}
+      SERVER_HOST: ${{ inputs.server_host }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -49,24 +55,18 @@ jobs:
         run: flutter pub get
 
       - name: 构建 APK
-        env:
-          BUILD_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'prod' }}
         run: |
-          flutter build apk --release --dart-define=ENV=${BUILD_ENV}
+          echo "ENV=${BUILD_ENV} SERVER_HOST=${SERVER_HOST}"
+          flutter build apk --release \
+            --dart-define=ENV=${BUILD_ENV} \
+            --dart-define=SERVER_HOST=${SERVER_HOST}
           ls -lh build/app/outputs/flutter-apk/
 
       - name: 重命名产物
         id: artifact
-        env:
-          BUILD_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'prod' }}
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | head -1 | awk '{print $2}' | tr '+' '_')
-          if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-            OUT="DrClaw-${TAG}-${BUILD_ENV}.apk"
-          else
-            OUT="DrClaw-${VERSION}-${BUILD_ENV}.apk"
-          fi
+          OUT="DrClaw-${VERSION}-${BUILD_ENV}.apk"
           SRC=$(ls build/app/outputs/flutter-apk/*.apk | head -1)
           cp "$SRC" "build/app/outputs/flutter-apk/${OUT}"
           echo "name=${OUT}" >> "$GITHUB_OUTPUT"
@@ -78,12 +78,3 @@ jobs:
           name: drclaw-android-apk
           path: ${{ steps.artifact.outputs.path }}
           if-no-files-found: error
-
-      - name: 附加到 GitHub Release
-        if: github.event_name == 'release'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="${{ github.event.release.tag_name }}"
-          gh release upload "$TAG" "${{ steps.artifact.outputs.path }}" --clobber --repo "$GITHUB_REPOSITORY"
-          echo "已上传: ${{ steps.artifact.outputs.name }} → Release $TAG"
