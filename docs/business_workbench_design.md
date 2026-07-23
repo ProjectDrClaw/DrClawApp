@@ -24,7 +24,7 @@
 | **长录音投递** | 以 OpenIM **文件消息（105）** 发送，不用语音（103），避免超长音频受短语音限制 |
 | **发送导航** | P0 **暂定**：发送时进入与助手的聊天页再投递（后续可改为后台发送、留在列表） |
 | **数据隔离** | App 侧患者工作集、备注、录音均属**当前登录医生私有**（按 OpenIM userID 分库）；换账号互不可见、不上送他人 |
-| **患者双轨** | **医生工作集**写入 Business（按医生归属，私有）；**院内患者库**落 `platform_patient` 表，App 只读 query；院内对接走**库表交换** |
+| **患者双轨** | **医生工作集**写入 Business（按医生归属，私有）；**院内患者库**为院内生产只读视图 `platform_patient`，App / 管理端只读 query |
 
 ### 1.3 本期目标（MVP）
 
@@ -759,16 +759,16 @@ abstract class WorkbenchBusinessHost {
 |------|------|------|
 | `/api/business/platform-patient/query` | POST | **只读**；查询 Business `platform_patient` 表 |
 
-**表 `platform_patient`**：普通业务表（字段含就诊号、患者 ID、姓名、床号、科室等）；管理端 CRUD；**与院内对接时走库表交换**写入/更新本表。
+**表 `platform_patient`**：院内生产系统提供的只读视图（字段含就诊号、患者 ID、姓名、床号、科室等）；本系统不写入。
 
 **行为约束**：
 
 - App 业务 API 仅 QUERY 语义；**无** save/update/delete  
 - 查询条件：`patientId`、`eventNo`、姓名、科室、床号、`keyword`  
-- 返回字段即表字段映射为 App `PlatformPatient`  
-- **不**再使用 HTTP 代理底座 / mock 开关；数据以表为准
+- 返回字段即视图字段映射为 App `PlatformPatient`  
+- **不**再使用 HTTP 代理底座 / mock 开关；数据以院内视图为准
 
-**管理端**：`/admin/platform-patients` + `/api/admin/platform-patient` CRUD（联调与运维）。
+**管理端**：`/admin/platform-patients` + `/api/admin/platform-patient` 仅 list / 详情查询。
 
 ### 14.5 App 交互流程
 

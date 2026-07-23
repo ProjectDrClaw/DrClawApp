@@ -12,14 +12,15 @@ class PatientDisplay {
   /// 删除确认（对齐旧库 getPatientDeleteConfirmMessage 本地自建文案）
   static const deletePatientConfirm = '确定删除该患者吗？手机里的录音也会一并删除。';
 
-  /// 标题行：姓名 · 性别 · 年龄（旧 formatPatientProfileLine）
+  /// 标题行：姓名 · 性别 · 年龄（数据库字段原样展示）
   static String profileLine(LocalPatient p) {
     final parts = <String>[];
     final name = p.patientName.trim();
     if (name.isNotEmpty) parts.add(name);
-    final g = genderLabel(p.gender);
-    if (g != null) parts.add(g);
-    if (p.age != null) parts.add('${p.age}岁');
+    final g = p.gender?.trim();
+    if (g != null && g.isNotEmpty) parts.add(g);
+    final a = p.age?.trim();
+    if (a != null && a.isNotEmpty) parts.add(a);
     if (parts.isEmpty) return '未命名患者';
     return parts.join(' · ');
   }
@@ -36,17 +37,6 @@ class PatientDisplay {
     final bed = p.bedNumber.trim();
     if (bed.isNotEmpty) parts.add('$fieldBedNumber $bed');
     return parts.join(' · ');
-  }
-
-  static String? genderLabel(int? gender) {
-    switch (gender) {
-      case 1:
-        return '男';
-      case 2:
-        return '女';
-      default:
-        return null;
-    }
   }
 
   /// 录音标题展示

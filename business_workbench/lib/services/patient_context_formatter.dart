@@ -54,29 +54,13 @@ class PatientContextFormatter {
     add(fieldEventNo, p.eventNo);
     add(fieldPatientId, p.patientId);
     add(fieldPatientName, p.patientName);
-    final genderLabel = _genderLabel(p.gender);
-    if (genderLabel != null) {
-      lines.add('- $fieldGender：$genderLabel');
-    }
-    if (p.age != null) {
-      lines.add('- $fieldAge：${p.age}');
-    }
+    add(fieldGender, p.gender);
+    add(fieldAge, p.age);
     add(fieldDepartment, p.department);
     add(fieldBedNumber, p.bedNumber);
     add(fieldIdCard, p.idCard);
     add(fieldRemark, p.remark);
     return lines;
-  }
-
-  static String? _genderLabel(int? gender) {
-    switch (gender) {
-      case 1:
-        return '男';
-      case 2:
-        return '女';
-      default:
-        return null;
-    }
   }
 
   /// 上传用文件名：以自定义录音标题为主（对齐飞书保留 file_name）。
@@ -90,7 +74,7 @@ class PatientContextFormatter {
     if (title.length > 40) title = title.substring(0, 40);
 
     final bed = p.bedNumber.trim();
-    final prefix = bed.isEmpty ? '' : '${bed}床_';
+    final prefix = bed.isEmpty ? '' : '${bed}_';
     return '$prefix${title}_${r.durationSec}s.m4a';
   }
 }

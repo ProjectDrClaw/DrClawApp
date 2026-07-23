@@ -28,8 +28,10 @@ class LocalPatient {
   String eventNo;
   String patientName;
   String idCard;
-  int? gender;
-  int? age;
+  /// 性别字符串（如 男/女）
+  String? gender;
+  /// 年龄字符串
+  String? age;
   String department;
   String bedNumber;
   String remark;
@@ -47,17 +49,15 @@ class LocalPatient {
   bool get hasBusinessKey =>
       patientId.trim().isNotEmpty || eventNo.trim().isNotEmpty;
 
-  /// 列表标题：姓名 · 性别 · 年龄（与 PatientDisplay.profileLine 一致）
+  /// 列表标题：姓名 · 性别 · 年龄（字段原样展示）
   String get displayTitle {
     final parts = <String>[];
     final name = patientName.trim();
     if (name.isNotEmpty) parts.add(name);
-    if (gender == 1) {
-      parts.add('男');
-    } else if (gender == 2) {
-      parts.add('女');
-    }
-    if (age != null) parts.add('$age岁');
+    final g = gender?.trim();
+    if (g != null && g.isNotEmpty) parts.add(g);
+    final a = age?.trim();
+    if (a != null && a.isNotEmpty) parts.add(a);
     if (parts.isEmpty) return '未命名患者';
     return parts.join(' · ');
   }
@@ -88,8 +88,8 @@ class LocalPatient {
         eventNo: (json['eventNo'] as String?) ?? '',
         patientName: (json['patientName'] as String?) ?? '',
         idCard: (json['idCard'] as String?) ?? '',
-        gender: json['gender'] as int?,
-        age: json['age'] as int?,
+        gender: json['gender'] as String?,
+        age: json['age'] as String?,
         department: (json['department'] as String?) ?? '',
         bedNumber: (json['bedNumber'] as String?) ?? '',
         remark: (json['remark'] as String?) ?? '',
@@ -110,8 +110,8 @@ class LocalPatient {
     String? eventNo,
     String? patientName,
     String? idCard,
-    int? gender,
-    int? age,
+    String? gender,
+    String? age,
     String? department,
     String? bedNumber,
     String? remark,

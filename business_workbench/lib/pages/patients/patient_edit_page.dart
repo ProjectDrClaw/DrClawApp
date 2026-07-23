@@ -152,7 +152,7 @@ class _GenderChips extends StatefulWidget {
 class _GenderChipsState extends State<_GenderChips> {
   @override
   Widget build(BuildContext context) {
-    Widget btn(String label, int? value) {
+    Widget btn(String label, String? value) {
       final selected = widget.logic.gender == value;
       return Expanded(
         child: GestureDetector(
@@ -179,9 +179,9 @@ class _GenderChipsState extends State<_GenderChips> {
 
     return Row(
       children: [
-        btn('男', 1),
+        btn('男', '男'),
         SizedBox(width: 10.w),
-        btn('女', 2),
+        btn('女', '女'),
         SizedBox(width: 10.w),
         btn('未知', null),
       ],

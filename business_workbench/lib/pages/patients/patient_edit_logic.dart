@@ -18,7 +18,7 @@ class PatientEditLogic extends GetxController {
   late final TextEditingController remarkCtrl;
 
   String? editingLocalId;
-  int? gender;
+  String? gender;
 
   @override
   void onInit() {
@@ -44,7 +44,7 @@ class PatientEditLogic extends GetxController {
         eventNoCtrl.text = p.eventNo;
         deptCtrl.text = p.department;
         idCardCtrl.text = p.idCard;
-        ageCtrl.text = p.age?.toString() ?? '';
+        ageCtrl.text = p.age ?? '';
         remarkCtrl.text = p.remark;
         gender = p.gender;
       }
@@ -77,7 +77,8 @@ class PatientEditLogic extends GetxController {
       return;
     }
     final now = DateTime.now().millisecondsSinceEpoch;
-    final age = int.tryParse(ageCtrl.text.trim());
+    final ageText = ageCtrl.text.trim();
+    final age = ageText.isEmpty ? null : ageText;
     late LocalPatient toSave;
     if (editingLocalId != null) {
       final old = WorkbenchStore.instance.getPatient(editingLocalId!);

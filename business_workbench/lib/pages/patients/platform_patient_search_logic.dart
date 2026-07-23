@@ -99,7 +99,7 @@ class PlatformPatientSearchLogic extends GetxController {
     final bed = p.bedNumber.trim();
     final title = bed.isEmpty
         ? '将${p.patientName}加入我的患者？'
-        : '将${p.patientName}（${bed}床）加入我的患者？';
+        : '将${p.patientName}（$bed）加入我的患者？';
     final ok = await Get.dialog<bool>(CustomDialog(title: title));
     if (ok != true) return;
 
@@ -206,8 +206,8 @@ class _PlatformPreviewSheet extends StatelessWidget {
             SizedBox(height: 12.h),
             _line('姓名', patient.patientName),
             _line('床号', patient.bedNumber),
-            _line('性别', _gender(patient.gender)),
-            _line('年龄', patient.age?.toString() ?? ''),
+            _line('性别', patient.gender ?? ''),
+            _line('年龄', patient.age ?? ''),
             _line('就诊号', patient.eventNo),
             _line('患者ID', patient.patientId),
             _line('科室', patient.department),
@@ -261,11 +261,5 @@ class _PlatformPreviewSheet extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _gender(int? g) {
-    if (g == 1) return '男';
-    if (g == 2) return '女';
-    return '';
   }
 }

@@ -188,14 +188,12 @@ class _PlatformResultTile extends StatelessWidget {
   String _titleLine(PlatformPatientDto p) {
     final parts = <String>[];
     final bed = p.bedNumber.trim();
-    if (bed.isNotEmpty) parts.add('$bed床');
+    if (bed.isNotEmpty) parts.add(bed);
     if (p.patientName.trim().isNotEmpty) parts.add(p.patientName.trim());
-    if (p.gender == 1) {
-      parts.add('男');
-    } else if (p.gender == 2) {
-      parts.add('女');
-    }
-    if (p.age != null) parts.add('${p.age}岁');
+    final g = p.gender?.trim();
+    if (g != null && g.isNotEmpty) parts.add(g);
+    final a = p.age?.trim();
+    if (a != null && a.isNotEmpty) parts.add(a);
     return parts.isEmpty ? '未命名' : parts.join(' · ');
   }
 

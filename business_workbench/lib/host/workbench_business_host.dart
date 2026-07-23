@@ -70,8 +70,8 @@ class PlatformPatientDto {
   final String patientId;
   final String patientName;
   final String idCard;
-  final int? gender;
-  final int? age;
+  final String? gender;
+  final String? age;
   final String department;
   final String bedNumber;
 
@@ -102,9 +102,8 @@ class DoctorPatientDto {
   final String patientId;
   final String patientName;
   final String idCard;
-  /// App 侧：1 男 / 2 女；空未知
-  final int? gender;
-  final int? age;
+  final String? gender;
+  final String? age;
   final String department;
   final String bedNumber;
   final String remark;
@@ -134,8 +133,8 @@ class DoctorPatientSave {
   final String patientId;
   final String patientName;
   final String idCard;
-  final int? gender;
-  final int? age;
+  final String? gender;
+  final String? age;
   final String department;
   final String bedNumber;
   final String remark;

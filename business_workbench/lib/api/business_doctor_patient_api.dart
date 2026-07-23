@@ -62,7 +62,7 @@ class BusinessDoctorPatientApi {
         'patientId': input.patientId,
         'patientName': input.patientName,
         'idCard': input.idCard,
-        'gender': _genderToApi(input.gender),
+        'gender': input.gender,
         'age': input.age,
         'department': input.department,
         'bedNumber': input.bedNumber,
@@ -144,8 +144,8 @@ class BusinessDoctorPatientApi {
       patientId: (json['patientId'] as String?) ?? '',
       patientName: (json['patientName'] as String?) ?? '',
       idCard: (json['idCard'] as String?) ?? '',
-      gender: _genderFromApi(json['gender']),
-      age: (json['age'] as num?)?.toInt(),
+      gender: json['gender'] as String?,
+      age: json['age'] as String?,
       department: (json['department'] as String?) ?? '',
       bedNumber: (json['bedNumber'] as String?) ?? '',
       remark: (json['remark'] as String?) ?? '',
@@ -162,30 +162,11 @@ class BusinessDoctorPatientApi {
       patientId: (json['patientId'] as String?) ?? '',
       patientName: (json['patientName'] as String?) ?? '',
       idCard: (json['idCard'] as String?) ?? '',
-      gender: _genderFromApi(json['gender']),
-      age: (json['age'] as num?)?.toInt(),
+      gender: json['gender'] as String?,
+      age: json['age'] as String?,
       department: (json['department'] as String?) ?? '',
       bedNumber: (json['bedNumber'] as String?) ?? '',
     );
-  }
-
-  static String? _genderToApi(int? gender) {
-    switch (gender) {
-      case 1:
-        return '男';
-      case 2:
-        return '女';
-      default:
-        return null;
-    }
-  }
-
-  static int? _genderFromApi(dynamic gender) {
-    if (gender == null) return null;
-    final s = gender.toString();
-    if (s == '男' || s == 'MALE' || s == '1') return 1;
-    if (s == '女' || s == 'FEMALE' || s == '2') return 2;
-    return null;
   }
 
   static int? _parseTimeMs(dynamic v) {
