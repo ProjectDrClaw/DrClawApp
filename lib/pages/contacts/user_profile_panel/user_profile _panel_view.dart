@@ -234,12 +234,7 @@ class UserProfilePanelPage extends StatelessWidget {
               height: 108.h,
               child: Row(
                 children: [
-                  Expanded(
-                    child: ImageTextButton.call(
-                      onTap: logic.toCall,
-                    ),
-                  ),
-                  11.horizontalSpace,
+                  // LiveKit 未部署前关闭音视频入口，仅保留发消息
                   Expanded(
                     child: ImageTextButton.message(
                       onTap: logic.toChat,

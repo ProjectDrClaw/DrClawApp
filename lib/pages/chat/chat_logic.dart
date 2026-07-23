@@ -414,12 +414,31 @@ class ChatLogic extends SuperController {
     }
   }
 
-  Future sendFile({required String path, required String fileName}) async {
+  Future<String?> sendFile({required String path, required String fileName}) async {
     final message = await OpenIM.iMManager.messageManager.createFileMessageFromFullPath(
       filePath: path,
       fileName: fileName,
     );
-    return _sendMessage(message);
+    // 直接拿 send 回包上的 sourceUrl（比依赖本地 message 更新更稳）
+    messageList.add(message);
+    scrollBottom();
+    _reset(message);
+    message.recvID = userID;
+    try {
+      final sent = await OpenIM.iMManager.messageManager.sendMessage(
+        message: message,
+        userID: userID,
+        groupID: groupID,
+        offlinePushInfo: Config.offlinePushInfo,
+      );
+      _sendSucceeded(message, sent);
+      return sent.fileElem?.sourceUrl ?? message.fileElem?.sourceUrl;
+    } catch (error, stack) {
+      _senFailed(message, groupID, userID, error, stack);
+      rethrow;
+    } finally {
+      _completed();
+    }
   }
 
   Future sendSound({required String path, required int duration}) async {
@@ -474,37 +493,27 @@ class ChatLogic extends SuperController {
       IMViews.showToast('录音时长过短');
       return;
     }
-    // 与工作台一致：失败且上下文已发出 → 只补发文件
-    final fileOnly =
-        r.status == RecordingStatus.failed && r.contextSent;
     try {
       r.status = RecordingStatus.sending;
       r.updatedAt = DateTime.now().millisecondsSinceEpoch;
       await WorkbenchStore.instance.saveRecording(r);
 
-      if (!fileOnly) {
-        final textMsg = await OpenIM.iMManager.messageManager.createTextMessage(
-          text: picked.contextText,
-        );
-        await _sendMessage(textMsg);
-        r.contextSent = true;
-        await WorkbenchStore.instance.saveRecording(r);
-      }
+      // 先文件后患者补充文案
       await sendFile(path: r.filePath, fileName: picked.fileName);
+      final textMsg = await OpenIM.iMManager.messageManager.createTextMessage(
+        text: PatientContextFormatter.wardRoundRecording(picked.patient, r),
+      );
+      await _sendMessage(textMsg);
       r.status = RecordingStatus.sent;
       r.sentAt = DateTime.now().millisecondsSinceEpoch;
       r.updatedAt = r.sentAt!;
       await WorkbenchStore.instance.saveRecording(r);
-      IMViews.showToast(fileOnly ? '录音已重新发送' : '已发送');
+      IMViews.showToast('已发送');
     } catch (e) {
       r.status = RecordingStatus.failed;
       r.updatedAt = DateTime.now().millisecondsSinceEpoch;
       await WorkbenchStore.instance.saveRecording(r);
-      if (r.contextSent) {
-        IMViews.showToast('录音没发出去，可到录音详情里重新发送');
-      } else {
-        IMViews.showToast('没发出去，请检查网络后重试');
-      }
+      IMViews.showToast('没发出去，请检查网络后重试');
     }
   }
 

@@ -105,7 +105,7 @@ class PatientDisplay {
       case RecordingStatus.sent:
         return '已发送';
       case RecordingStatus.failed:
-        return r.contextSent ? '录音未发出' : '发送失败';
+        return '发送失败';
     }
   }
 
@@ -135,9 +135,6 @@ class PatientDisplay {
             ? '已于 ${formatDate(r.sentAt!)} 发送'
             : '发送成功';
       case RecordingStatus.failed:
-        if (r.contextSent) {
-          return '患者说明已发出，录音还没传成功。点下方按钮只会再传录音，不会重复发患者说明。';
-        }
         return '刚才没发出去。点下方按钮会重新发送患者说明和录音。';
     }
   }
@@ -147,7 +144,7 @@ class PatientDisplay {
     if (sending) return '发送中…';
     switch (r.status) {
       case RecordingStatus.failed:
-        return r.contextSent ? '重新发送录音' : '再试一次';
+        return '再试一次';
       case RecordingStatus.sent:
         return '再发一次';
       case RecordingStatus.sending:

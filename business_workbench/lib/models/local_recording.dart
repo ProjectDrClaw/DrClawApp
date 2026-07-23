@@ -17,7 +17,6 @@ class LocalRecording {
     required this.createdAt,
     required this.updatedAt,
     this.deleted = false,
-    this.contextSent = false,
   });
 
   final String localId;
@@ -36,9 +35,6 @@ class LocalRecording {
   int updatedAt;
   bool deleted;
 
-  /// 文本上下文已发出、仅文件失败时可标 true，便于重试只补发文件
-  bool contextSent;
-
   Map<String, dynamic> toJson() => {
         'localId': localId,
         'patientLocalId': patientLocalId,
@@ -54,7 +50,6 @@ class LocalRecording {
         'createdAt': createdAt,
         'updatedAt': updatedAt,
         'deleted': deleted,
-        'contextSent': contextSent,
       };
 
   factory LocalRecording.fromJson(Map<String, dynamic> json) => LocalRecording(
@@ -75,6 +70,5 @@ class LocalRecording {
         createdAt: (json['createdAt'] as int?) ?? 0,
         updatedAt: (json['updatedAt'] as int?) ?? 0,
         deleted: (json['deleted'] as bool?) ?? false,
-        contextSent: (json['contextSent'] as bool?) ?? false,
       );
 }

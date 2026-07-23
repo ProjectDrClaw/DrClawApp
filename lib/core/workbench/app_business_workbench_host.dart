@@ -213,14 +213,13 @@ class AppBusinessWorkbenchHost implements WorkbenchHost, WorkbenchBusinessHost {
   }
 
   @override
-  Future<void> sendFileToAgent({
+  Future<String?> sendFileToAgent({
     required String filePath,
     required String fileName,
   }) async {
     final chat = _chatLogic;
     if (chat != null) {
-      await chat.sendFile(path: filePath, fileName: fileName);
-      return;
+      return chat.sendFile(path: filePath, fileName: fileName);
     }
     final target = await _ensureAssistantUserId();
     final message =
@@ -228,11 +227,12 @@ class AppBusinessWorkbenchHost implements WorkbenchHost, WorkbenchBusinessHost {
       filePath: filePath,
       fileName: fileName,
     );
-    await OpenIM.iMManager.messageManager.sendMessage(
+    final sent = await OpenIM.iMManager.messageManager.sendMessage(
       message: message,
       userID: target,
       offlinePushInfo: Config.offlinePushInfo,
     );
+    return sent.fileElem?.sourceUrl ?? message.fileElem?.sourceUrl;
   }
 }
 

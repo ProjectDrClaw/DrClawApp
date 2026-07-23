@@ -245,18 +245,6 @@ class _StatusBadge extends StatelessWidget {
               color: color,
             ),
           ),
-          if (recording.status == RecordingStatus.failed &&
-              recording.contextSent) ...[
-            SizedBox(width: 6.w),
-            Text(
-              '· 说明已发出',
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: WbTheme.warning,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ],
       ),
     );

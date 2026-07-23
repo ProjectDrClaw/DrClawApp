@@ -144,9 +144,6 @@ class RecordingDetailLogic extends GetxController {
     final target = await host.prepareAssistantForSend();
     if (target == null || target.isEmpty) return;
 
-    // 仅「失败且上下文已发出」时跳过文本；再次发送 / 整单重试都发文本
-    final fileOnly = r.status == RecordingStatus.failed && r.contextSent;
-
     sending.value = true;
     final now = DateTime.now().millisecondsSinceEpoch;
     r.status = RecordingStatus.sending;
@@ -156,33 +153,25 @@ class RecordingDetailLogic extends GetxController {
 
     try {
       await host.openAgentChat();
-      if (!fileOnly) {
-        final text = PatientContextFormatter.wardRoundRecording(p, r);
-        await host.sendTextToAgent(text);
-        r.contextSent = true;
-        await WorkbenchStore.instance.saveRecording(r);
-        recording.refresh();
-      }
+      // 先发文件再发患者补充文案（正文不写下载地址等技术信息）
       final fileName = PatientContextFormatter.fileNameForRecording(p, r);
       await host.sendFileToAgent(filePath: r.filePath, fileName: fileName);
+      final text = PatientContextFormatter.wardRoundRecording(p, r);
+      await host.sendTextToAgent(text);
       r.status = RecordingStatus.sent;
       r.sentAt = DateTime.now().millisecondsSinceEpoch;
       r.updatedAt = r.sentAt!;
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
       _dirty = true;
-      IMViews.showToast(fileOnly ? '录音已重新发送' : '已发送');
+      IMViews.showToast('已发送');
     } catch (e) {
       r.status = RecordingStatus.failed;
       r.updatedAt = DateTime.now().millisecondsSinceEpoch;
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
       _dirty = true;
-      if (r.contextSent) {
-        IMViews.showToast('录音没发出去，可以点「重新发送录音」再试');
-      } else {
-        IMViews.showToast('没发出去，请检查网络后重试');
-      }
+      IMViews.showToast('没发出去，请检查网络后重试');
     } finally {
       sending.value = false;
     }

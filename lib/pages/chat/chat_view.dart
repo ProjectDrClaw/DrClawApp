@@ -161,7 +161,8 @@ class ChatPage extends StatelessWidget {
               member: logic.memberStr,
               onCloseMultiModel: logic.exit,
               onClickMoreBtn: logic.chatSetup,
-              onClickCallBtn: logic.isGroupChat ? null : logic.call,
+              // LiveKit 未部署前关闭音视频入口
+              showCallBtn: false,
             ),
             body: SafeArea(
               child: WaterMarkBgView(
@@ -185,7 +186,8 @@ class ChatPage extends StatelessWidget {
                     onTapWardRecording: logic.showPatientToolbox
                         ? logic.onTapWardRecording
                         : null,
-                    onTapCall: logic.isGroupChat ? null : logic.call,
+                    // LiveKit 未部署前关闭音视频入口
+                    onTapCall: null,
                   ),
                   voiceRecordBar: ChatVoiceRecordBar(
                     onCompleted: (duration, path) {

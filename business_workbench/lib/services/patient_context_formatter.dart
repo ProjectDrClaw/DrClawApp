@@ -1,5 +1,6 @@
 import '../models/local_patient.dart';
 import '../models/local_recording.dart';
+import 'patient_display.dart';
 
 /// 拼接到对话框的文案（对齐旧库 DrClawApp：patientDisplay / messages）
 class PatientContextFormatter {
@@ -25,21 +26,20 @@ class PatientContextFormatter {
     ].join('\n');
   }
 
-  /// 发送录音（旧：buildRecordingMessageText）
+  /// 查房录音配套文案：只补充录音里没有的患者基本信息，标明对应哪位患者。
+  /// 音频本身由文件消息投递，正文不写下载地址、文件名等技术字段。
   static String wardRoundRecording(LocalPatient p, LocalRecording r) {
-    final title =
-        (r.title?.trim().isNotEmpty == true) ? r.title!.trim() : '录音';
-    return [
-      '请根据以下患者信息和录音文件，生成病历相关内容。',
+    final title = PatientDisplay.recordingTitle(r);
+    final lines = <String>[
+      '以下为该录音对应的患者信息，请结合录音内容生成病历相关材料。',
       '',
-      '患者信息：',
       ...buildPatientInfoLines(p),
-      '',
-      '录音信息：',
-      '- 录音标题：$title',
-      '- 录音时长：${r.durationSec} 秒',
-      '- 录音时间：${_formatRecordingTime(r.createdAt)}',
-    ].join('\n');
+    ];
+    // 自定义标题便于多条录音时区分，非技术元数据
+    if (title != '录音') {
+      lines.add('- 录音标题：$title');
+    }
+    return lines.join('\n');
   }
 
   /// 患者字段行（旧：buildPatientInfoLines，空值省略）
@@ -79,16 +79,18 @@ class PatientContextFormatter {
     }
   }
 
-  static String _formatRecordingTime(int ms) {
-    final t = DateTime.fromMillisecondsSinceEpoch(ms);
-    final hh = t.hour.toString().padLeft(2, '0');
-    final mm = t.minute.toString().padLeft(2, '0');
-    return '${t.year}年${t.month}月${t.day}日 $hh:$mm';
-  }
-
+  /// 上传用文件名：以自定义录音标题为主（对齐飞书保留 file_name）。
+  /// 仅剔除路径非法字符，保留中文；Agent 下载时会对 URL 编码。
   static String fileNameForRecording(LocalPatient p, LocalRecording r) {
-    final bed = p.bedNumber.trim().isEmpty ? '无床号' : '${p.bedNumber}床';
-    final name = p.patientName.trim().isEmpty ? '患者' : p.patientName.trim();
-    return '${bed}_${name}_${r.durationSec}s.m4a';
+    var title = PatientDisplay.recordingTitle(r)
+        .replaceAll(PatientDisplay.invalidTitleChars, '_')
+        .trim();
+    title = title.replaceAll(RegExp(r'\s+'), '_');
+    if (title.isEmpty) title = '录音';
+    if (title.length > 40) title = title.substring(0, 40);
+
+    final bed = p.bedNumber.trim();
+    final prefix = bed.isEmpty ? '' : '${bed}床_';
+    return '$prefix${title}_${r.durationSec}s.m4a';
   }
 }

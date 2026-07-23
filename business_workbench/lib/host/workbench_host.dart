@@ -22,7 +22,8 @@ abstract class WorkbenchHost {
   Future<void> sendTextToAgent(String text);
 
   /// 向当前助手会话发送本地文件（长录音 contentType=105）
-  Future<void> sendFileToAgent({
+  /// 成功时可返回 OpenIM `sourceUrl`（调用方可不使用）
+  Future<String?> sendFileToAgent({
     required String filePath,
     required String fileName,
   });
