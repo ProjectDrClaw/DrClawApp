@@ -82,6 +82,8 @@ class PatientListTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                SizedBox(height: 6.h),
+                _SyncChip(patient: patient),
               ],
             ),
           ),
@@ -128,4 +130,43 @@ String _initialOf(String name) {
   final t = name.trim();
   if (t.isEmpty) return '患';
   return t.substring(0, 1);
+}
+
+class _SyncChip extends StatelessWidget {
+  const _SyncChip({required this.patient});
+
+  final LocalPatient patient;
+
+  Color get _color {
+    switch (patient.syncStatus) {
+      case PatientSyncStatus.synced:
+        return WbTheme.success;
+      case PatientSyncStatus.dirty:
+        return WbTheme.warning;
+      case PatientSyncStatus.error:
+        return WbTheme.danger;
+      case PatientSyncStatus.localOnly:
+        return WbTheme.textSecondary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        PatientDisplay.patientSyncLabel(patient),
+        style: TextStyle(
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
 }

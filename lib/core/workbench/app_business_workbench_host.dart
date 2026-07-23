@@ -10,9 +10,9 @@ import 'package:business_workbench/business_workbench.dart';
 import '../../pages/chat/chat_logic.dart';
 import '../../routes/app_navigator.dart';
 
-/// 主工程 Host：对接 OpenIM 会话与发消息。
+/// 主工程 Host：对接 OpenIM 会话与发消息，以及 Business 工作集 API。
 /// 助手即为普通用户，首次发送时从好友中选择并记住。
-class AppBusinessWorkbenchHost implements WorkbenchHost {
+class AppBusinessWorkbenchHost implements WorkbenchHost, WorkbenchBusinessHost {
   @override
   String get assistantUserId =>
       DataSp.getWorkbenchAssistantUserId()?.trim() ?? '';
@@ -24,6 +24,57 @@ class AppBusinessWorkbenchHost implements WorkbenchHost {
     } catch (_) {
       return '';
     }
+  }
+
+  @override
+  String get businessBaseUrl => Config.businessBaseUrl;
+
+  @override
+  String get businessAppId => Config.businessAppId;
+
+  @override
+  String get doctorUserId => currentUserId;
+
+  BusinessDoctorPatientApi get _api => BusinessDoctorPatientApi(
+        baseUrl: businessBaseUrl,
+        appId: businessAppId,
+        doctorUserId: doctorUserId,
+      );
+
+  @override
+  Future<DoctorPatientPage> listMyPatients({
+    int pageNum = 1,
+    int pageSize = 100,
+    String? keyword,
+  }) {
+    return _api.list(pageNum: pageNum, pageSize: pageSize, keyword: keyword);
+  }
+
+  @override
+  Future<DoctorPatientDto> saveMyPatient(DoctorPatientSave input) {
+    return _api.save(input);
+  }
+
+  @override
+  Future<void> deleteMyPatient({required String id}) {
+    return _api.delete(id: id);
+  }
+
+  @override
+  Future<PlatformPatientPage> queryPlatformPatients({
+    int pageNum = 1,
+    int pageSize = 20,
+    String? keyword,
+    String? eventNo,
+    String? patientId,
+  }) {
+    return _api.queryPlatform(
+      pageNum: pageNum,
+      pageSize: pageSize,
+      keyword: keyword,
+      eventNo: eventNo,
+      patientId: patientId,
+    );
   }
 
   @override

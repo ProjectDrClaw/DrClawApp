@@ -17,7 +17,7 @@ class PatientListPage extends StatelessWidget {
     return Scaffold(
       appBar: TitleBar.back(
         title: '患者',
-        right: WbTextAction(label: '新建', onTap: logic.toCreate),
+        right: WbTextAction(label: '添加', onTap: logic.toCreate),
       ),
       backgroundColor: WbTheme.background,
       body: Column(
@@ -31,37 +31,101 @@ class PatientListPage extends StatelessWidget {
             child: Obx(() {
               if (logic.patients.isEmpty) {
                 final searching = logic.keyword.value.trim().isNotEmpty;
-                return WbEmptyView(
-                  icon: Icons.person_outline,
-                  text: searching ? '未找到匹配患者' : '暂无患者',
-                  hint: searching ? '试试其他关键词' : '添加患者后即可录音并发送',
-                  actionLabel: searching ? null : '新建患者',
-                  onAction: searching ? null : logic.toCreate,
+                return RefreshIndicator(
+                  onRefresh: () => logic.refreshFromServer(),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.55,
+                        child: searching
+                            ? const WbEmptyView(
+                                icon: Icons.person_outline,
+                                text: '未找到匹配患者',
+                                hint: '试试其他关键词',
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const WbEmptyView(
+                                    icon: Icons.person_outline,
+                                    text: '暂无患者',
+                                    hint: '从院内检索添加，或手动填写',
+                                  ),
+                                  SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 48,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 44,
+                                          child: ElevatedButton(
+                                            onPressed: logic.toPlatformSearch,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: WbTheme.primary,
+                                            ),
+                                            child: const Text(
+                                              '从院内检索',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: logic.toManualCreate,
+                                          child: Text(
+                                            '手动填写',
+                                            style: TextStyle(
+                                              color: WbTheme.textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ],
+                  ),
                 );
               }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  WbListHeader(text: '共 ${logic.patients.length} 位患者'),
+                  WbListHeader(
+                    text: logic.syncing.value
+                        ? '同步中… 共 ${logic.patients.length} 位'
+                        : '共 ${logic.patients.length} 位患者',
+                  ),
                   Expanded(
-                    child: ListView.builder(
-                      padding: EdgeInsets.only(top: 2, bottom: 24),
-                      itemCount: logic.patients.length,
-                      itemBuilder: (_, i) {
-                        final p = logic.patients[i];
-                        return PatientListTile(
-                          patient: p,
-                          onTap: () => logic.toDetail(p),
-                          onLongPress: () async {
-                            final ok = await Get.dialog<bool>(
-                              CustomDialog(
-                                title: PatientDisplay.deletePatientConfirm,
-                              ),
-                            );
-                            if (ok == true) await logic.deletePatient(p);
-                          },
-                        );
-                      },
+                    child: RefreshIndicator(
+                      onRefresh: () => logic.refreshFromServer(),
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.only(top: 2, bottom: 24),
+                        itemCount: logic.patients.length,
+                        itemBuilder: (_, i) {
+                          final p = logic.patients[i];
+                          return PatientListTile(
+                            patient: p,
+                            onTap: () => logic.toDetail(p),
+                            onLongPress: () async {
+                              final ok = await Get.dialog<bool>(
+                                CustomDialog(
+                                  title: PatientDisplay.deletePatientConfirm,
+                                ),
+                              );
+                              if (ok == true) await logic.deletePatient(p);
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],

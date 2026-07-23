@@ -59,7 +59,7 @@ class PatientEditPage extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
             child: Text(
-              '提示：患者ID与就诊号至少填一项，便于后续对齐文书与院内数据。',
+              '提示：患者ID与就诊号至少填一项，填写后可同步到云端；都空则仅保存在本机。',
               style: WbTheme.meta13,
             ),
           ),

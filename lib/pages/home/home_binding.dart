@@ -15,7 +15,18 @@ class HomeBinding extends Bindings {
     Get.lazyPut(() => ContactsLogic());
     Get.lazyPut(() => MineLogic());
     if (!Get.isRegistered<WorkbenchHost>()) {
-      Get.put<WorkbenchHost>(AppBusinessWorkbenchHost(), permanent: true);
+      final host = AppBusinessWorkbenchHost();
+      Get.put<WorkbenchHost>(host, permanent: true);
+      Get.put<WorkbenchBusinessHost>(host, permanent: true);
+    } else if (!Get.isRegistered<WorkbenchBusinessHost>()) {
+      final existing = Get.find<WorkbenchHost>();
+      if (existing is WorkbenchBusinessHost) {
+        Get.put<WorkbenchBusinessHost>(existing as WorkbenchBusinessHost,
+            permanent: true);
+      } else {
+        Get.put<WorkbenchBusinessHost>(AppBusinessWorkbenchHost(),
+            permanent: true);
+      }
     }
   }
 }

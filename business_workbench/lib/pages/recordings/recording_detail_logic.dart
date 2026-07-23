@@ -24,6 +24,15 @@ class RecordingDetailLogic extends GetxController {
 
   bool get isDirty => _dirty;
 
+  String get sendButtonLabel {
+    final r = recording.value;
+    if (r == null) return '发送';
+    return PatientDisplay.recordingSendButtonLabel(
+      r,
+      sending: sending.value,
+    );
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -121,9 +130,22 @@ class RecordingDetailLogic extends GetxController {
       return;
     }
 
-    // 已选过助手时二次确认发送对象；未选则先选好友
+    // 已发送成功后再点：确认整单重发（文本 + 文件）
+    if (r.status == RecordingStatus.sent) {
+      final ok = await Get.dialog<bool>(
+        CustomDialog(
+          title: '确定再发一次吗？聊天里可能会出现重复的患者说明和录音。',
+        ),
+      );
+      if (ok != true) return;
+    }
+
+    // 已选过发送对象时二次确认；未选则先选好友
     final target = await host.prepareAssistantForSend();
     if (target == null || target.isEmpty) return;
+
+    // 仅「失败且上下文已发出」时跳过文本；再次发送 / 整单重试都发文本
+    final fileOnly = r.status == RecordingStatus.failed && r.contextSent;
 
     sending.value = true;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -134,11 +156,12 @@ class RecordingDetailLogic extends GetxController {
 
     try {
       await host.openAgentChat();
-      if (!r.contextSent) {
+      if (!fileOnly) {
         final text = PatientContextFormatter.wardRoundRecording(p, r);
         await host.sendTextToAgent(text);
         r.contextSent = true;
         await WorkbenchStore.instance.saveRecording(r);
+        recording.refresh();
       }
       final fileName = PatientContextFormatter.fileNameForRecording(p, r);
       await host.sendFileToAgent(filePath: r.filePath, fileName: fileName);
@@ -148,14 +171,18 @@ class RecordingDetailLogic extends GetxController {
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
       _dirty = true;
-      IMViews.showToast('已发送');
+      IMViews.showToast(fileOnly ? '录音已重新发送' : '已发送');
     } catch (e) {
       r.status = RecordingStatus.failed;
       r.updatedAt = DateTime.now().millisecondsSinceEpoch;
       await WorkbenchStore.instance.saveRecording(r);
       recording.refresh();
       _dirty = true;
-      IMViews.showToast('发送失败：$e');
+      if (r.contextSent) {
+        IMViews.showToast('录音没发出去，可以点「重新发送录音」再试');
+      } else {
+        IMViews.showToast('没发出去，请检查网络后重试');
+      }
     } finally {
       sending.value = false;
     }

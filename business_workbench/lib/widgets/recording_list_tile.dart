@@ -77,6 +77,10 @@ class RecordingListTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (recording.status != RecordingStatus.local) ...[
+                  SizedBox(height: 6.h),
+                  _StatusChip(recording: recording),
+                ],
               ],
             ),
           ),
@@ -142,6 +146,45 @@ class RecordingListTile extends StatelessWidget {
     return Material(
       color: WbTheme.backgroundLight,
       child: InkWell(onTap: onTap, child: content),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.recording});
+
+  final LocalRecording recording;
+
+  Color get _color {
+    switch (recording.status) {
+      case RecordingStatus.local:
+        return WbTheme.textSecondary;
+      case RecordingStatus.sending:
+        return WbTheme.primary;
+      case RecordingStatus.sent:
+        return WbTheme.success;
+      case RecordingStatus.failed:
+        return WbTheme.danger;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        PatientDisplay.recordingStatusLabel(recording),
+        style: TextStyle(
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 }

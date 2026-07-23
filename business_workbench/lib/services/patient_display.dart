@@ -94,4 +94,66 @@ class PatientDisplay {
     final who = patient == null ? '未知患者' : profileLine(patient);
     return '$who · ${formatDate(r.createdAt)}';
   }
+
+  /// 发送状态短标签（列表角标）
+  static String recordingStatusLabel(LocalRecording r) {
+    switch (r.status) {
+      case RecordingStatus.local:
+        return '未发送';
+      case RecordingStatus.sending:
+        return '发送中';
+      case RecordingStatus.sent:
+        return '已发送';
+      case RecordingStatus.failed:
+        return r.contextSent ? '录音未发出' : '发送失败';
+    }
+  }
+
+  /// 患者同步状态短标签
+  static String patientSyncLabel(LocalPatient p) {
+    switch (p.syncStatus) {
+      case PatientSyncStatus.localOnly:
+        return '仅本机';
+      case PatientSyncStatus.synced:
+        return '已同步';
+      case PatientSyncStatus.dirty:
+        return '待同步';
+      case PatientSyncStatus.error:
+        return '同步失败';
+    }
+  }
+
+  /// 详情页状态说明（失败时提示重试策略）
+  static String? recordingStatusHint(LocalRecording r) {
+    switch (r.status) {
+      case RecordingStatus.local:
+        return null;
+      case RecordingStatus.sending:
+        return '正在发送，请稍候…';
+      case RecordingStatus.sent:
+        return r.sentAt != null
+            ? '已于 ${formatDate(r.sentAt!)} 发送'
+            : '发送成功';
+      case RecordingStatus.failed:
+        if (r.contextSent) {
+          return '患者说明已发出，录音还没传成功。点下方按钮只会再传录音，不会重复发患者说明。';
+        }
+        return '刚才没发出去。点下方按钮会重新发送患者说明和录音。';
+    }
+  }
+
+  /// 详情页主按钮文案
+  static String recordingSendButtonLabel(LocalRecording r, {required bool sending}) {
+    if (sending) return '发送中…';
+    switch (r.status) {
+      case RecordingStatus.failed:
+        return r.contextSent ? '重新发送录音' : '再试一次';
+      case RecordingStatus.sent:
+        return '再发一次';
+      case RecordingStatus.sending:
+        return '发送中…';
+      case RecordingStatus.local:
+        return '发送';
+    }
+  }
 }

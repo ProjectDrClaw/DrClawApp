@@ -23,6 +23,8 @@ class WbTheme {
   static const inputBackground = Color(0xFFF7F8FA);
   static const border = Color(0xFFEBEEF5);
   static const danger = Color(0xFFF56C6C);
+  static const warning = Color(0xFFE6A23C);
+  static const success = Color(0xFF67C23A);
 
   static TextStyle get title16 => TextStyle(
         fontSize: 16.sp,

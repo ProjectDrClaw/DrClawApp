@@ -474,20 +474,37 @@ class ChatLogic extends SuperController {
       IMViews.showToast('录音时长过短');
       return;
     }
+    // 与工作台一致：失败且上下文已发出 → 只补发文件
+    final fileOnly =
+        r.status == RecordingStatus.failed && r.contextSent;
     try {
-      final textMsg = await OpenIM.iMManager.messageManager.createTextMessage(
-        text: picked.contextText,
-      );
-      await _sendMessage(textMsg);
+      r.status = RecordingStatus.sending;
+      r.updatedAt = DateTime.now().millisecondsSinceEpoch;
+      await WorkbenchStore.instance.saveRecording(r);
+
+      if (!fileOnly) {
+        final textMsg = await OpenIM.iMManager.messageManager.createTextMessage(
+          text: picked.contextText,
+        );
+        await _sendMessage(textMsg);
+        r.contextSent = true;
+        await WorkbenchStore.instance.saveRecording(r);
+      }
       await sendFile(path: r.filePath, fileName: picked.fileName);
-      // 标记本地已发送（与工作台列表状态对齐）
-      r.contextSent = true;
       r.status = RecordingStatus.sent;
       r.sentAt = DateTime.now().millisecondsSinceEpoch;
       r.updatedAt = r.sentAt!;
       await WorkbenchStore.instance.saveRecording(r);
+      IMViews.showToast(fileOnly ? '录音已重新发送' : '已发送');
     } catch (e) {
-      IMViews.showToast('发送失败：$e');
+      r.status = RecordingStatus.failed;
+      r.updatedAt = DateTime.now().millisecondsSinceEpoch;
+      await WorkbenchStore.instance.saveRecording(r);
+      if (r.contextSent) {
+        IMViews.showToast('录音没发出去，可到录音详情里重新发送');
+      } else {
+        IMViews.showToast('没发出去，请检查网络后重试');
+      }
     }
   }
 

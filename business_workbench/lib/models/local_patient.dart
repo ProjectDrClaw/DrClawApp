@@ -1,4 +1,7 @@
-/// 本地患者（医生工作集缓存；P2 再与 Business 同步）
+/// 本地同步状态
+enum PatientSyncStatus { localOnly, synced, dirty, error }
+
+/// 本地患者（医生工作集缓存；可与 Business 同步）
 class LocalPatient {
   LocalPatient({
     required this.localId,
@@ -14,6 +17,10 @@ class LocalPatient {
     required this.createdAt,
     required this.updatedAt,
     this.deleted = false,
+    this.businessWorksetId,
+    this.syncStatus = PatientSyncStatus.localOnly,
+    this.source = 'manual',
+    this.platformSyncedAt,
   });
 
   final String localId;
@@ -29,6 +36,13 @@ class LocalPatient {
   int createdAt;
   int updatedAt;
   bool deleted;
+
+  /// Business 工作集主键
+  String? businessWorksetId;
+  PatientSyncStatus syncStatus;
+  /// manual / from_platform
+  String source;
+  int? platformSyncedAt;
 
   bool get hasBusinessKey =>
       patientId.trim().isNotEmpty || eventNo.trim().isNotEmpty;
@@ -62,6 +76,10 @@ class LocalPatient {
         'createdAt': createdAt,
         'updatedAt': updatedAt,
         'deleted': deleted,
+        'businessWorksetId': businessWorksetId,
+        'syncStatus': syncStatus.name,
+        'source': source,
+        'platformSyncedAt': platformSyncedAt,
       };
 
   factory LocalPatient.fromJson(Map<String, dynamic> json) => LocalPatient(
@@ -78,6 +96,13 @@ class LocalPatient {
         createdAt: (json['createdAt'] as int?) ?? 0,
         updatedAt: (json['updatedAt'] as int?) ?? 0,
         deleted: (json['deleted'] as bool?) ?? false,
+        businessWorksetId: json['businessWorksetId']?.toString(),
+        syncStatus: PatientSyncStatus.values.firstWhere(
+          (e) => e.name == json['syncStatus'],
+          orElse: () => PatientSyncStatus.localOnly,
+        ),
+        source: (json['source'] as String?) ?? 'manual',
+        platformSyncedAt: (json['platformSyncedAt'] as int?),
       );
 
   LocalPatient copyWith({
@@ -92,6 +117,11 @@ class LocalPatient {
     String? remark,
     int? updatedAt,
     bool? deleted,
+    String? businessWorksetId,
+    PatientSyncStatus? syncStatus,
+    String? source,
+    int? platformSyncedAt,
+    bool clearBusinessWorksetId = false,
   }) {
     return LocalPatient(
       localId: localId,
@@ -107,6 +137,12 @@ class LocalPatient {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deleted: deleted ?? this.deleted,
+      businessWorksetId: clearBusinessWorksetId
+          ? null
+          : (businessWorksetId ?? this.businessWorksetId),
+      syncStatus: syncStatus ?? this.syncStatus,
+      source: source ?? this.source,
+      platformSyncedAt: platformSyncedAt ?? this.platformSyncedAt,
     );
   }
 }

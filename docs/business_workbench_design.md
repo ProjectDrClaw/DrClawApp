@@ -1,6 +1,6 @@
 ﻿# 业务工作台（business_workbench）详细设计
 
-> 状态：**P0 实施中**（设计已定稿；双轨患者见 §14，P0 仅本地工作集）  
+> 状态：**P0 / P1 / P2a / P2b 已落地**；P2c 待实施（细则见 **§15**；双轨总览见 §14）  
 > 范围：[DrClawApp](../) — 主工程仅挂载 Tab；**业务实现独立本地包 `business_workbench`**  
 > 关联：查房「床旁录音 → 发给 Agent → Business 暂存 → HIS 回填」闭环；Business 患者字段对齐 `PatientDTO`
 
@@ -603,12 +603,22 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 
 ## 10. 分期
 
-| 阶段 | 内容 |
-|------|------|
-| **P0** | 建包 + Tab + Host；患者 CRUD；长录音；工作台单条发给助手 |
-| **P1** | **聊天工具箱选患者**（§7）；发送重试；可选当前患者角标 |
-| **P2** | **医生工作集落库 Business + 底座只读查询（§14）**；custom 110；批量发送 |
-| **P3** | 患者详情扩展**检验/检查**等底座只读数据；业务包更多入口 |
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| **P0** | 建包 + Tab + Host；患者 CRUD；长录音；工作台单条发送（文件 105） | **已落地** |
+| **P1** | 聊天工具箱选患者 / 查房录音；发送失败重试 UI | **已落地**（当前患者角标仍为可选未做） |
+| **P2** | 医生工作集落库 + 底座只读查询；custom 110；批量发送 | **P2a/P2b 已落地**；P2c 待实施（细则 §15） |
+| **P3** | 患者详情扩展检验/检查等底座只读；业务包更多入口 | 未开始 |
+
+### P2 子分期
+
+| 子阶段 | 内容 | 依赖 |
+|--------|------|------|
+| **P2a** | 医生工作集落库 Business + App 同步（换机可拉回） | **已落地** |
+| **P2b** | `platform-patient/query` + 「从院内检索」UI | **已落地**（默认 Mock 底座） |
+| **P2c** | custom 110、批量发送、后台发送 | P2a 患者数据 |
+
+顺序：**P2a → P2b → P2c**。完整契约与 UI 见 **§15**。
 
 ---
 
@@ -650,13 +660,13 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 - [architecture.md](./architecture.md)  
 - [message_types_alignment.md](./message_types_alignment.md)  
 - Agent：[DRCLAW_OPENIM_CHANNEL_zh.md](../../DrClawAgent/docs/DRCLAW_OPENIM_CHANNEL_zh.md)  
-- Business：[病历文书接口文档.md](../../DrClawBusiness/docs/病历文书接口文档.md)；患者双轨见本文 **§14**  
+- Business：[病历文书接口文档.md](../../DrClawBusiness/docs/病历文书接口文档.md)；[开发命名规范.md](../../DrClawBusiness/docs/开发命名规范.md)；患者双轨见本文 **§14**，P2 实施见 **§15**  
 
 ---
 
 ## 14. 患者双轨：医生工作集 + 底座只读查询
 
-> 分期：**P2** 工作集落库 + 底座查询；**P3** 检验/检查等只读扩展  
+> 分期：**P2**（子分期与实施见 **§15**）；**P3** 检验/检查等只读扩展  
 > **定位**：两条线互不混淆——**医生在 App 维护的患者**写入 Business 且**只属于该医生**；**院级患者信息**由 Business 新增**只读查询接口直连数据底座**，App/医生不可写底座。
 
 ### 14.1 总览
@@ -697,15 +707,15 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 
 ### 14.3 A · 医生工作集 API（Business 新建）
 
-建议路径（名称可评审）：
+建议路径（名称已定，完整 JSON / 错误码见 **§15.4**）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/business/doctor-patient/list` | POST | 仅返回 **当前医生** 的工作集（分页） |
 | `/api/business/doctor-patient/save` | POST | 新增/更新本人工作集项（upsert） |
-| `/api/business/doctor-patient/delete` | POST/DELETE | 从本人工作集移除（软删） |
+| `/api/business/doctor-patient/delete` | POST | 从本人工作集移除（软删） |
 
-**鉴权**：请求头 `appId` + 医生身份（推荐：App 传 OpenIM `userID`，或后续医院员工 token；服务端必须以鉴权结果为准，**禁止**信任客户端随意指定他人 `doctorUserId`）。
+**鉴权**：请求头 `appId` + **`doctorUserId`**（= OpenIM `userID`）；服务端强制按该头隔离，**禁止**信任 body 中的他人 `doctorUserId`（ADR-7）。
 
 **建议表 `doctor_patient`（示意）**：
 
@@ -811,11 +821,13 @@ abstract class WorkbenchBusinessHost {
 
 ### 14.10 验收（P2）
 
+见 **§15.9**（按 P2a / P2b / P2c 拆分勾选）。摘要：
+
 - [ ] 医生 A 的工作集 save/list，医生 B **不可见**  
 - [ ] 工作集变更写入 Business；换机同账号可拉回  
-- [ ] `platform-patient/query` 只读且直连底座；App **无**写底座入口  
-- [ ] 底座检索结果可「加入我的患者」并出现在工作集  
-- [ ] 无网可用本地缓存工作集选人录音；恢复网络可同步 dirty  
+- [ ] `platform-patient/query` 只读；App **无**写底座入口  
+- [ ] 「从院内检索」可加入我的患者（入口见 §15.7b）  
+- [ ] 无网可用本地缓存；恢复网络可同步 dirty  
 
 ### 14.11 ADR
 
@@ -824,13 +836,327 @@ abstract class WorkbenchBusinessHost {
 | ADR-4 | **双轨**：医生工作集读写落 Business（按医生归属）；院级患者信息经 **新建只读 API 直连数据底座** |
 | ADR-5 | 不复用无归属的旧 `patient/save` 作为 App「我的患者」；检验/检查等同属底座只读扩展 |
 | ADR-3 | App 本地仍按 OpenIM userID 分库；与 Business `doctor_user_id` 一致 |
+| ADR-6 | P2 子分期：P2a 工作集落库 → P2b 院内检索 → P2c custom110/批量/后台发送 |
+| ADR-7 | 医生身份：请求头 `doctorUserId`（OpenIM userID）；与 `appId` 并用 |
 
 ---
 
-## 15. 修订记录
+## 15. P2 实施细则
+
+> 本节省实施规格。**P2a / P2b 代码已落地**；P2c 仍待实现。P0/P1 已落地且联调通过。
+
+### 15.1 范围与非目标
+
+| 做 | 不做 |
+|----|------|
+| P2a 全量规格（表 / API / App 同步） | 改旧 `patient` 表语义 |
+| P2b/P2c 契约、UI、验收（实现可后置） | App 直写底座、HIS 回填 UI、P3 检验检查 |
+
+已拍板：
+
+- 不复用 `/api/business/patient/*` 作为「我的患者」
+- 上云同步要求 `eventNo` / `patientId` **至少一个非空**（`hasBusinessKey`）；无业务键草稿保持 `local_only`
+- P2b 无底座时 Business 返回空列表或可配置 Mock
+
+### 15.2 端到端数据流（P2a）
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant Biz as DrClawBusiness
+  participant Hive as LocalHive
+  App->>Hive: 离线 CRUD
+  App->>Biz: list/save/delete doctor-patient
+  Note over Biz: header appId + doctorUserId
+  Biz-->>App: 本人工作集
+  App->>Hive: 合并 synced 或标 dirty/error
+```
+
+### 15.3 Business · 表 `doctor_patient`
+
+Flyway：`sqlite` / `h2` 各增 `V3__doctor_patient.sql`（风格对齐现有 `V1__init_schema.sql`）。
+
+| 列 | 说明 |
+|----|------|
+| `id` | PK，自增 |
+| `doctor_user_id` | NOT NULL，OpenIM userID |
+| `event_no` / `patient_id` | 业务键；无业务键不上云 |
+| `patient_name`, `id_card`, `gender`, `age`, `department`, `bed_number`, `remark` | 对齐旧 `patient` 展示字段 |
+| `source` | `manual` / `from_platform` |
+| `platform_snapshot_at` | 可空 |
+| `create_time` / `update_time` / `deleted` | 常规 + 逻辑删 |
+
+- 唯一约束：`(doctor_user_id, event_no, patient_id)`（靠「无业务键不上云」避免空串撞唯一）
+- 索引：`doctor_user_id`；`(doctor_user_id, update_time)`
+
+### 15.4 Business · 医生工作集 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/business/doctor-patient/list` | Body 筛选 + Query 分页 |
+| POST | `/api/business/doctor-patient/save` | upsert |
+| POST | `/api/business/doctor-patient/delete` | 软删（按 id，且必须属当前医生） |
+
+**请求头**
+
+| 头 | 必选 | 说明 |
+|----|------|------|
+| `appId` | 是 | 沿用现有 AppIdInterceptor |
+| `doctorUserId` | 是 | 当前 OpenIM userID |
+| `Content-Type` | POST | `application/json` |
+
+响应结构与 [病历文书接口文档](../../DrClawBusiness/docs/病历文书接口文档.md) 的 `R` / `PageVO` 一致。
+
+**错误约定**：缺 `doctorUserId` → 401；越权删改 → 403；save 无业务键 → 400。
+
+**list 请求示例**
+
+```json
+POST /api/business/doctor-patient/list?pageNum=1&pageSize=20
+Headers: appId, doctorUserId
+Body: { "keyword": "张三" }
+```
+
+**list 响应 data 示例**
+
+```json
+{
+  "rows": [
+    {
+      "id": 12,
+      "eventNo": "EV001",
+      "patientId": "P001",
+      "patientName": "张三",
+      "gender": "MALE",
+      "age": 45,
+      "department": "呼吸科",
+      "bedNumber": "12",
+      "remark": "",
+      "source": "from_platform",
+      "platformSnapshotAt": "2026-07-22T10:00:00",
+      "createTime": "...",
+      "updateTime": "..."
+    }
+  ],
+  "pageNum": 1,
+  "pageSize": 20,
+  "total": 1
+}
+```
+
+**save 请求示例**
+
+```json
+{
+  "id": null,
+  "eventNo": "EV001",
+  "patientId": "P001",
+  "patientName": "张三",
+  "gender": "MALE",
+  "age": 45,
+  "department": "呼吸科",
+  "bedNumber": "12",
+  "remark": "今日拟出院",
+  "source": "manual"
+}
+```
+
+服务端用请求头 `doctorUserId` 写入归属；忽略 body 中的 `doctorUserId`（若有）。同医生同业务键 upsert。
+
+**delete 请求示例**
+
+```json
+{ "id": 12 }
+```
+
+**Java 落点**：`DoctorPatient` Entity/DTO/ListRequest/SaveRequest/DeleteRequest；`DoctorPatientApiController` / `Service` / `Mapper`；`doctorUserId` 校验可挂在 `doctor-patient`（及后续 `platform-patient`）路径。
+
+### 15.5 App · 配置与 Host
+
+- `EnvConfig` / `Config`：增加 `businessBaseUrl`、`businessAppId`（可用 `--dart-define` 覆盖）
+- 抽象 `WorkbenchBusinessHost`（实现可与 IM Host 同属 `AppBusinessWorkbenchHost`，接口分离）
+- 业务包 `business_workbench/lib/api/`（Dio）；页面禁止直接拼 URL
+
+```dart
+abstract class WorkbenchBusinessHost {
+  String get businessBaseUrl;
+  String get businessAppId;
+
+  Future<DoctorPatientPage> listMyPatients({int pageNum, int pageSize, String? keyword});
+  Future<DoctorPatient> saveMyPatient(DoctorPatientSave input);
+  Future<void> deleteMyPatient({required String id});
+
+  /// P2b
+  Future<PlatformPatientPage> queryPlatformPatients(PlatformPatientQuery q);
+}
+```
+
+### 15.6 App · 本地模型与同步
+
+扩展 `LocalPatient`：`businessWorksetId`、`syncStatus`（`local_only` / `synced` / `dirty` / `error`）、`source`、`platformSyncedAt`。
+
+| 时机 | 行为 |
+|------|------|
+| 进入列表 / 下拉刷新 | 先 flush `dirty`，再 `listMyPatients`，按 `businessWorksetId` 或业务键合并；服务端为权威（本地 dirty 推送成功后再覆盖） |
+| 新建/编辑保存 | 写 Hive → 有业务键则 `saveMyPatient` → 成功 `synced`+回写 id，失败 `dirty`/`error` |
+| 删除 | 本地软删 → `deleteMyPatient`；失败标 dirty |
+| 无网 | 仅 Hive；恢复后批量 flush |
+| 录音 | 仍仅本机 + OpenIM，**不进**工作集表 |
+
+### 15.7 UI（P2a）
+
+- 患者列表：同步状态角标；下拉刷新
+- 添加入口见 **§15.7b**（P2b；P2a 阶段 AppBar 可暂保留「新建」手填，P2b 起改为「添加」）
+- 编辑页：无业务键时提示「填写就诊号或患者ID后可云端同步」
+
+### 15.7b 「从院内检索」移动端 UI（P2b）
+
+**原则**：全屏检索页；只读；确认后写入本人工作集。主路径「从院内找人」，手填兜底。
+
+**入口（单一「添加」+ 动作面板）**
+
+| 位置 | 交互 |
+|------|------|
+| AppBar 右侧 | **「添加」**（替代「新建」）→ 底部动作面板 |
+| 空态 | 主按钮「从院内检索」；文字链「手动填写」 |
+| 患者编辑页 | **不**放「去检索」，避免路径分叉 |
+
+**动作面板**
+
+```
+┌─────────────────────────────────────┐
+│ 添加患者                             │
+│ ┌─────────────────────────────────┐ │
+│ │ 🔍 从院内检索              推荐  │ │
+│ │ 按就诊号、床号等查找院内档案     │ │
+│ └─────────────────────────────────┘ │
+│ ┌─────────────────────────────────┐ │
+│ │ ✏️ 手动填写                      │ │
+│ │ 院内暂无档案或仅床旁备注时使用   │ │
+│ └─────────────────────────────────┘ │
+│              [取消]                  │
+└─────────────────────────────────────┘
+```
+
+**示意图 · 有患者时**
+
+```mermaid
+flowchart TD
+  listPage["患者列表<br/>右上角：添加"]
+  sheet["底部动作面板<br/>添加患者"]
+  search["全屏：从院内检索"]
+  edit["全屏：手动填写"]
+  detail["患者详情"]
+  listPage -->|"点添加"| sheet
+  sheet -->|"从院内检索 推荐"| search
+  sheet -->|"手动填写"| edit
+  search -->|"加入成功"| detail
+  edit -->|"保存"| listPage
+```
+
+**示意图 · 空列表**
+
+```mermaid
+flowchart TD
+  empty["患者列表空态"]
+  search2["从院内检索"]
+  edit2["手动填写"]
+  empty -->|"主按钮"| search2
+  empty -->|"文字链"| edit2
+```
+
+**屏幕关系**
+
+```text
+┌─ 患者列表 ─────────────┐     ┌─ 动作面板 ────────────┐
+│ 患者 …          [添加] │ --> │ 添加患者               │
+│ · 12床 张三            │     │ [从院内检索] 推荐      │
+│ · 08床 李四            │     │ [手动填写]             │
+└────────────────────────┘     │      [取消]            │
+         │ 选「从院内检索」     └───────────────────────┘
+         ▼
+┌─ 从院内检索（全屏）─────┐
+│ 🔍 关键词…              │
+│ 12床 张三 …    [加入]  │
+└────────────────────────┘
+```
+
+**检索页 `PlatformPatientSearchPage`**（`/workbench/patients/platform-search`）
+
+- 搜索：提交才查；hint「就诊号、患者ID、姓名或床号」
+- 结果行：`床号 · 姓名 · 性别 · 年龄` + 副行业务键/科室；右侧「加入」/「已添加」
+- 加入：校验业务键 → 已在工作集则询问是否打开 → 否则确认后 `saveMyPatient`（`source=from_platform`）→ 进详情
+- 点整行：只读预览，无编辑框
+- 非目标：多选加入、改底座、聊天内嵌院内检索、AppBar 双按钮
+
+**详情「刷新院内信息」**（可选）：按业务键 query，确认后更新展示字段（备注保留）。
+
+### 15.8 P2b / P2c 契约摘要
+
+**P2b**
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/business/platform-patient/query` | 只读；Business 代理底座；无底座返回空 |
+
+App UI 按 §15.7b；加入走 P2a save。
+
+**P2c**
+
+- OpenIM `contentType=110`；`customType`：`current_patient` / `ward_round_voice`
+- 录音列表多选批量发送
+- 后台发送（可不先进聊天页）
+
+### 15.9 验收清单
+
+**P2a**
+
+- [ ] 医生 A 工作集对医生 B 不可见  
+- [ ] 换机同账号可拉回工作集  
+- [ ] 无业务键不上云，保持 `local_only`  
+- [ ] dirty 可重试；无网可录可看本地  
+- [ ] 旧 `/api/business/patient/*` 无回归  
+
+**P2b**
+
+- [ ] 「添加」→ 动作面板 → 院内检索全屏页  
+- [ ] 空态主按钮直达检索  
+- [ ] 加入后进详情；已添加不重复 save  
+- [ ] App 无写底座入口  
+
+**P2c**
+
+- [ ] custom 110 收发与展示  
+- [ ] 多选批量发送  
+- [ ] 后台发送可用  
+
+### 15.10 实施任务清单
+
+**Business**
+
+- [ ] `V3__doctor_patient.sql`（sqlite + h2）  
+- [ ] Entity/DTO/Mapper/Service/ApiController  
+- [ ] `doctorUserId` 请求头校验  
+- [ ]（P2b）`platform-patient/query` + 底座配置/Mock  
+
+**App**
+
+- [ ] `businessBaseUrl` / `businessAppId`  
+- [ ] `WorkbenchBusinessHost` + Dio 客户端  
+- [ ] `LocalPatient` 同步字段 + 合并/flush  
+- [ ] 列表同步角标、下拉刷新  
+- [ ]（P2b）添加面板 + `PlatformPatientSearchPage`  
+- [ ]（P2c）custom 110 / 批量 / 后台发送  
+
+---
+
+## 16. 修订记录
 
 | 日期 | 说明 |
 |------|------|
+| 2026-07-23 | **P2b 实施**：`platform-patient/query`（默认 Mock）；App「添加」动作面板 + 从院内检索全屏页 |
+| 2026-07-23 | **P2a 实施**：Business `doctor_patient` + API；App Host/同步/列表下拉刷新与同步角标 |
+| 2026-07-22 | **P2 实施细则 §15**：P2a/b/c 子分期；doctor-patient 表/API JSON；同步算法；院内检索入口（单一「添加」+ 动作面板）与示意图；ADR-6/7；标注 P0/P1 已落地 |
 | 2026-07-21 | 初稿：工作台 Tab、患者与长录音、单条发送 MVP |
 | 2026-07-21 | 增补：独立包、Host 反转依赖、主工程最小化挂载 |
 | 2026-07-21 | 定名 `business_workbench` /「业务工作台」；定位为与 DrClawBusiness 交互的业务入口 |

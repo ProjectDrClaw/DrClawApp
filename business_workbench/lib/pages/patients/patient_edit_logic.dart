@@ -4,6 +4,7 @@ import 'package:openim_common/openim_common.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../models/local_patient.dart';
+import '../../services/patient_sync_service.dart';
 import '../../store/workbench_store.dart';
 
 class PatientEditLogic extends GetxController {
@@ -77,45 +78,51 @@ class PatientEditLogic extends GetxController {
     }
     final now = DateTime.now().millisecondsSinceEpoch;
     final age = int.tryParse(ageCtrl.text.trim());
+    late LocalPatient toSave;
     if (editingLocalId != null) {
       final old = WorkbenchStore.instance.getPatient(editingLocalId!);
       if (old == null) {
         IMViews.showToast('患者不存在');
         return;
       }
-      await WorkbenchStore.instance.savePatient(
-        old.copyWith(
-          patientName: name,
-          bedNumber: bedCtrl.text.trim(),
-          patientId: pid,
-          eventNo: eno,
-          department: deptCtrl.text.trim(),
-          idCard: idCardCtrl.text.trim(),
-          age: age,
-          gender: gender,
-          remark: remarkCtrl.text.trim(),
-          updatedAt: now,
-        ),
+      toSave = old.copyWith(
+        patientName: name,
+        bedNumber: bedCtrl.text.trim(),
+        patientId: pid,
+        eventNo: eno,
+        department: deptCtrl.text.trim(),
+        idCard: idCardCtrl.text.trim(),
+        age: age,
+        gender: gender,
+        remark: remarkCtrl.text.trim(),
+        updatedAt: now,
+        syncStatus: PatientSyncStatus.dirty,
+        source: old.source.isNotEmpty ? old.source : 'manual',
       );
     } else {
-      await WorkbenchStore.instance.savePatient(
-        LocalPatient(
-          localId: const Uuid().v4(),
-          patientName: name,
-          bedNumber: bedCtrl.text.trim(),
-          patientId: pid,
-          eventNo: eno,
-          department: deptCtrl.text.trim(),
-          idCard: idCardCtrl.text.trim(),
-          age: age,
-          gender: gender,
-          remark: remarkCtrl.text.trim(),
-          createdAt: now,
-          updatedAt: now,
-        ),
+      toSave = LocalPatient(
+        localId: const Uuid().v4(),
+        patientName: name,
+        bedNumber: bedCtrl.text.trim(),
+        patientId: pid,
+        eventNo: eno,
+        department: deptCtrl.text.trim(),
+        idCard: idCardCtrl.text.trim(),
+        age: age,
+        gender: gender,
+        remark: remarkCtrl.text.trim(),
+        createdAt: now,
+        updatedAt: now,
+        syncStatus: PatientSyncStatus.dirty,
+        source: 'manual',
       );
     }
-    IMViews.showToast('已保存');
+    try {
+      await PatientSyncService.instance.saveAndPush(toSave);
+      IMViews.showToast('已保存');
+    } catch (_) {
+      IMViews.showToast('已保存到本机，云端同步失败');
+    }
     Get.back(result: true);
   }
 }

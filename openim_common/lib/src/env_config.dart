@@ -16,6 +16,14 @@ class EnvConfig {
   static const String serverHostOverride =
       String.fromEnvironment('SERVER_HOST', defaultValue: '');
 
+  /// 可选：覆盖 Business 服务根地址
+  static const String businessBaseUrlOverride =
+      String.fromEnvironment('BUSINESS_BASE_URL', defaultValue: '');
+
+  /// Business 对外 appId（须在 Business bootstrap-app-ids 内）
+  static const String businessAppId =
+      String.fromEnvironment('BUSINESS_APP_ID', defaultValue: 'mobile-app');
+
   /// 开发环境默认内网地址
   static const String devHost = '10.110.177.132';
 

@@ -119,6 +119,23 @@ class Config {
     return _isIP(host) ? "ws://$host:10001" : "wss://$host/msg_gateway";
   }
 
+  /// DrClawBusiness 根地址（无尾斜杠）
+  static String get businessBaseUrl {
+    if (EnvConfig.businessBaseUrlOverride.isNotEmpty) {
+      return EnvConfig.businessBaseUrlOverride.replaceAll(RegExp(r'/+$'), '');
+    }
+    final server = DataSp.getServerConfig();
+    final url = server?['businessUrl'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url.replaceAll(RegExp(r'/+$'), '');
+    }
+    final host = serverIp;
+    return _isIP(host) ? 'http://$host:8087' : 'https://$host/business';
+  }
+
+  /// Business 请求头 appId
+  static String get businessAppId => EnvConfig.businessAppId;
+
   static int get logLevel {
     final server = DataSp.getServerConfig();
     final level = server?['logLevel'] as String?;

@@ -6,6 +6,8 @@ import 'pages/patients/patient_edit_logic.dart';
 import 'pages/patients/patient_edit_page.dart';
 import 'pages/patients/patient_list_logic.dart';
 import 'pages/patients/patient_list_page.dart';
+import 'pages/patients/platform_patient_search_logic.dart';
+import 'pages/patients/platform_patient_search_page.dart';
 import 'pages/recordings/recording_detail_logic.dart';
 import 'pages/recordings/recording_detail_page.dart';
 import 'pages/recordings/recording_list_logic.dart';
@@ -19,6 +21,7 @@ class WorkbenchRoutes {
   static const patients = '/workbench/patients';
   static const patientEdit = '/workbench/patients/edit';
   static const patientDetail = '/workbench/patients/detail';
+  static const platformSearch = '/workbench/patients/platform-search';
   static const recordings = '/workbench/recordings';
   static const recordingDetail = '/workbench/recordings/detail';
   static const recordingSession = '/workbench/recordings/session';
@@ -38,6 +41,13 @@ class WorkbenchRoutes {
       name: patientDetail,
       page: () => const PatientDetailPage(),
       binding: BindingsBuilder(() => Get.lazyPut(() => PatientDetailLogic())),
+    ),
+    GetPage(
+      name: platformSearch,
+      page: () => const PlatformPatientSearchPage(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => PlatformPatientSearchLogic()),
+      ),
     ),
     GetPage(
       name: recordings,
