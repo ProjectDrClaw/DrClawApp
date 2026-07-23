@@ -50,7 +50,7 @@ DrClawApp/
 
 ### 业务包 `business_workbench/`
 
-与 **DrClawBusiness** 对齐的业务域：**医生工作集**（落库、按医生私有）+ **底座只读查询**（院级患者/检验检查）、查房录音、本地 Hive；详见 [business_workbench_design.md](./business_workbench_design.md) §14。
+与 **DrClawBusiness** 对齐的业务域：**医生工作集**（落库、按医生私有）+ **底座只读查询**（院内患者库/检验检查）、查房录音、本地 Hive；详见 [business_workbench_design.md](./business_workbench_design.md) §14。
 
 ### 公共模块要点
 

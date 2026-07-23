@@ -24,7 +24,7 @@
 | **长录音投递** | 以 OpenIM **文件消息（105）** 发送，不用语音（103），避免超长音频受短语音限制 |
 | **发送导航** | P0 **暂定**：发送时进入与助手的聊天页再投递（后续可改为后台发送、留在列表） |
 | **数据隔离** | App 侧患者工作集、备注、录音均属**当前登录医生私有**（按 OpenIM userID 分库）；换账号互不可见、不上送他人 |
-| **患者双轨** | **医生工作集**写入 Business（按医生归属，私有）；**院级患者信息**经 Business **只读查询接口直连数据底座**，App 不写底座 |
+| **患者双轨** | **医生工作集**写入 Business（按医生归属，私有）；**院内患者库**落 `platform_patient` 表，App 只读 query；院内对接走**库表交换** |
 
 ### 1.3 本期目标（MVP）
 
@@ -38,7 +38,7 @@
 ### 1.4 非目标（本期不做）
 
 - 多选批量发送给 Agent  
-- App 直写数据底座或改写院级主档（仅经 **只读查询** 接口查阅）  
+- App 直写数据底座或改写院内患者库（仅经 **只读查询** 接口查阅）  
 - App 直连 Business 写文书（文书由 Agent 写入）  
 - Agent 查房 Skill / MCP 落库（Agent 仓另立任务）  
 - HIS 回填 UI  
@@ -62,7 +62,7 @@
 |------|-----|------|
 | App → Agent（OpenIM） | 【查房录音】文本 + **文件 105**；进聊天页发送 | custom、后台发送等 |
 | App ↔ Business（医生工作集） | P0 仅本地 | **P2** 工作集保存/列表（按医生归属，§14.A） |
-| App ← Business ← 数据底座 | P0 不直连 | **P2** 只读查询院级患者（§14.B）；P3+ 检验/检查 |
+| App ← Business（院内患者库） | P0 不直连 | **P2** 只读 query `platform_patient`；院内对接走库表交换；P3+ 检验/检查 |
 | App → Business（文书） | 不直写；由 Agent MCP 写文书 | — |
 | HIS → Business | 已有拉取**文书** API | — |
 
@@ -358,7 +358,7 @@ class WorkbenchEntry {
 |------|------|
 | 列表 | 「我的患者」= 医生工作集（本地 + P2 与 Business 同步）；床号/时间排序；搜索 |
 | 新建/编辑工作集 | 医生维护的字段（姓名、床号、备注等）可编辑；**保存到 Business（归属当前医生）** |
-| 从底座选入 | 调用 **院级只读查询**（§14.B），选中后写入**本人工作集**（可带出底座字段作快照） |
+| 从底座选入 | 调用 **院内患者库只读查询**（§14.B），选中后写入**本人工作集**（可带出底座字段作快照） |
 | 详情 | 「开始录音」+ 「该患者录音」；可再查底座刷新展示；P3+ 检验/检查 |
 | 删除 | 从**本人工作集**移除（本地 + Business）；**不**删除底座数据 |
 
@@ -615,7 +615,7 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | 子阶段 | 内容 | 依赖 |
 |--------|------|------|
 | **P2a** | 医生工作集落库 Business + App 同步（换机可拉回） | **已落地** |
-| **P2b** | `platform-patient/query` + 「从院内检索」UI | **已落地**（默认 Mock 底座） |
+| **P2b** | `platform-patient/query` + 「从院内检索」UI | **已落地**（读 `platform_patient` 表） |
 | **P2c** | custom 110、批量发送、后台发送 | P2a 患者数据 |
 
 顺序：**P2a → P2b → P2c**。完整契约与 UI 见 **§15**。
@@ -664,10 +664,10 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 
 ---
 
-## 14. 患者双轨：医生工作集 + 底座只读查询
+## 14. 患者双轨：医生工作集 + 院内患者库
 
 > 分期：**P2**（子分期与实施见 **§15**）；**P3** 检验/检查等只读扩展  
-> **定位**：两条线互不混淆——**医生在 App 维护的患者**写入 Business 且**只属于该医生**；**院级患者信息**由 Business 新增**只读查询接口直连数据底座**，App/医生不可写底座。
+> **定位**：两条线互不混淆——**医生在 App 维护的患者**写入 Business 且**只属于该医生**；**院内患者库**落 Business 普通表 `platform_patient`，App **只读 query**；与院内系统对接时走**库表交换**写入本表，App/医生不经 API 写院内患者库。
 
 ### 14.1 总览
 
@@ -679,21 +679,22 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│ B. 院级患者信息（只读，直连数据底座）                              │
-│    App ──query──► Business 只读 API ──► 统一数据底座               │
-│    不落医生工作集也可查；选入工作集时再走 A 的 save                 │
+│ B. 院内患者库（普通表 platform_patient）                             │
+│    App ──query──► Business 只读 API ──► platform_patient 表       │
+│    院内 HIS/集成 ──库表交换──► platform_patient（写入/同步）       │
+│    管理端可 CRUD；选入工作集时再走 A 的 save                       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 | 数据 | 存哪 | 归属 | App |
 |------|------|------|-----|
 | 医生「我的患者」/备注等 | Business 工作集表 + 本地缓存 | **当前医生** | 读写本人数据 |
-| 院级患者信息 | 数据底座（经 Business 代理查询） | 院内共享源 | **只读查询** |
-| 检验 / 检查等 | 数据底座（后续同类只读 API） | 院内 | 只读 |
+| 院内患者库 | Business `platform_patient` 表 | 院内共享源 | **只读查询** |
+| 检验 / 检查等 | 后续同类表 + 只读 API（对接亦可库表交换） | 院内 | 只读 |
 | 查房文书 | Business 文书表 | 业务共用 | App 不写；Agent 写 |
 | 查房录音文件 | OpenIM | 会话侧 | 与患者表无关 |
 
-> 现有 `POST /api/business/patient/list|save` 面向院级 `patient` 表、**无医生归属**，**不宜**直接当作 App「我的患者」API。工作集应**新建**归属表与接口；底座查询亦**新建**只读接口，避免与旧 CRUD 语义混用。
+> 旧 `POST /api/business/patient/*`（无医生归属）**已移除**；App「我的患者」走 `doctor-patient`，院内检索走 `platform-patient/query`。
 
 ### 14.2 原则
 
@@ -701,8 +702,9 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 |------|------|
 | 工作集落库 | App 维护的患者须保存到 Business，便于换机恢复、多端一致 |
 | 医生私有 | 工作集按 `doctorUserId`（建议 = OpenIM `userID`）隔离；list/save 强制带当前医生身份 |
-| 底座只读 | 院级查询接口**禁止写底座**；Business 内不做医生侧对底座的 upsert |
-| 选入可组合 | 底座查到患者 → 医生确认 → `save` 进本人工作集（可存底座字段快照） |
+| 院内患者库只读（对 App） | App 仅 `query`；**不**经业务 API 写 `platform_patient` |
+| 库表交换对接 | 与院内数据对接时同步/交换写入 `platform_patient`，**不**走 HTTP 代理底座 |
+| 选入可组合 | 院内患者库查到患者 → 医生确认 → `save` 进本人工作集（可存字段快照） |
 | 业务键 | 工作集与文书仍用 `eventNo` + `patientId` 对齐 |
 
 ### 14.3 A · 医生工作集 API（Business 新建）
@@ -724,9 +726,9 @@ custom `110`（`ward_round_voice` / `current_patient`）；批量发送；Busine
 | `id` | 主键 |
 | `doctor_user_id` | 医生归属（OpenIM userID） |
 | `event_no` / `patient_id` | 业务键 |
-| `patient_name`、床号、科室等 | 工作集展示字段（可来自手填或底座快照） |
-| `remark` / `note` | 医生备注（属工作集，非底座） |
-| `platform_snapshot_at` | 可选：上次从底座带入时间 |
+| `patient_name`、床号、科室等 | 工作集展示字段（可来自手填或院内患者库快照） |
+| `remark` / `note` | 医生备注（属工作集，非院内患者库） |
+| `platform_snapshot_at` | 可选：上次从院内患者库带入时间 |
 | `create_time` / `update_time` / `deleted` | 常规 |
 
 唯一约束建议：`(doctor_user_id, event_no, patient_id)`（同一医生下同一住院不重复）。
@@ -743,29 +745,29 @@ abstract class WorkbenchBusinessHost {
   Future<DoctorPatient> saveMyPatient(DoctorPatientSave input);
   Future<void> deleteMyPatient({required String id}); // 或按业务键
 
-  /// B. 底座只读查询（见 14.4）
+  /// B. 院内患者库只读查询（见 14.4）
   Future<PlatformPatientPage> queryPlatformPatients(PlatformPatientQuery q);
 }
 ```
 
 **本地同步**：Hive 仍按 `userId` 分库作离线缓存；有网时以 Business 工作集为准合并；`dirty` 可推送 `saveMyPatient`。
 
-### 14.4 B · 底座只读查询 API（Business 新建）
+### 14.4 B · 院内患者库 + 只读查询 API
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/business/platform-patient/query` | POST | **只读**；Business **直连数据底座**查询并原样/映射返回 |
+| `/api/business/platform-patient/query` | POST | **只读**；查询 Business `platform_patient` 表 |
+
+**表 `platform_patient`**：普通业务表（字段含就诊号、患者 ID、姓名、床号、科室等）；管理端 CRUD；**与院内对接时走库表交换**写入/更新本表。
 
 **行为约束**：
 
-- 仅 GET/QUERY 语义；**无** save/update/delete  
-- Business **不写**底座；是否落本地短时缓存由 Business 自定，对 App 仍表现为只读查询  
-- 查询条件示例：`patientId`、`eventNo`、姓名、科室/病区、床号（以底座能力为准）  
-- 返回字段与底座对齐，再映射为 App 可用的 `PlatformPatient`（含 `patientId`/`eventNo`/姓名/床号等）
+- App 业务 API 仅 QUERY 语义；**无** save/update/delete  
+- 查询条件：`patientId`、`eventNo`、姓名、科室、床号、`keyword`  
+- 返回字段即表字段映射为 App `PlatformPatient`  
+- **不**再使用 HTTP 代理底座 / mock 开关；数据以表为准
 
-**配置（Business）**：底座 baseUrl、凭证、超时等；与现有 `patient` 表 CRUD 解耦。
-
-**与旧 `patient` 表关系**：旧表可保留给 admin/MCP/文书侧过渡；院级床旁查阅以 **platform-patient/query** 为准，避免「表内数据是否已同步底座」歧义。
+**管理端**：`/admin/platform-patients` + `/api/admin/platform-patient` CRUD（联调与运维）。
 
 ### 14.5 App 交互流程
 
@@ -774,7 +776,7 @@ abstract class WorkbenchBusinessHost {
        │
        ├─ 手动新建/编辑 ──► saveMyPatient
        │
-       └─ 「从院内检索」──► queryPlatformPatients（底座）
+       └─ 「从院内检索」──► queryPlatformPatients（platform_patient 表）
                 │
                 └─ 选中「加入我的患者」──► saveMyPatient（写入工作集快照）
 ```
@@ -790,7 +792,7 @@ abstract class WorkbenchBusinessHost {
 | `syncStatus` | `local_only` / `synced` / `dirty` / `error` |
 | `source` | `manual` / `from_platform` |
 | 业务字段 | 与工作集 DTO 对齐 |
-| `platformSyncedAt` | 可选：最近一次底座对照时间 |
+| `platformSyncedAt` | 可选：最近一次对照院内患者库时间 |
 
 录音、文件路径仍仅本机 + OpenIM，不进工作集表。
 
@@ -799,25 +801,25 @@ abstract class WorkbenchBusinessHost {
 | 入口 | 行为 |
 |------|------|
 | 我的患者 | 刷新 = 拉工作集；展示同步状态 |
-| 添加 | 手填 **或** 「院内检索」（底座只读）后加入 |
+| 添加 | 手填 **或** 「院内检索」（读院内患者库）后加入 |
 | 详情 | 可编辑工作集字段并保存；院内信息区只读；录音；P3 检验/检查 |
 | 删除 | 仅移出我的患者 |
 
 ### 14.8 检验 / 检查（P3+）
 
-与 §14.B 同模式：Business 只读 API **直连底座**（如 `/api/business/platform-lab/query`），挂在患者详情；不写底座。
+与 §14.B 同模式：Business 建对应表 + 只读 API；院内对接优先**库表交换**；挂在患者详情；App 不写。
 
 ### 14.9 与查房闭环
 
 ```
-底座 ──只读 query──► Business ──► App 展示 / 选入工作集
-                                      │
-医生工作集 ◄── save/list ─────────────┘
+院内 ──库表交换──► platform_patient ──query──► App 展示 / 选入工作集
+                                                      │
+医生工作集 ◄── save/list ─────────────────────────────┘
        │
        ▼ 选患者 + 录音 → OpenIM → Agent → Business 文书 → HIS
 ```
 
-文书仍按 `eventNo`/`patientId` 关联；不依赖把医生工作集当成院级主档。
+文书仍按 `eventNo`/`patientId` 关联；不依赖把医生工作集当成院内患者库。
 
 ### 14.10 验收（P2）
 
@@ -825,7 +827,7 @@ abstract class WorkbenchBusinessHost {
 
 - [ ] 医生 A 的工作集 save/list，医生 B **不可见**  
 - [ ] 工作集变更写入 Business；换机同账号可拉回  
-- [ ] `platform-patient/query` 只读；App **无**写底座入口  
+- [ ] `platform-patient/query` 只读；App **无**写院内患者库入口  
 - [ ] 「从院内检索」可加入我的患者（入口见 §15.7b）  
 - [ ] 无网可用本地缓存；恢复网络可同步 dirty  
 
@@ -833,8 +835,8 @@ abstract class WorkbenchBusinessHost {
 
 | 编号 | 决策 |
 |------|------|
-| ADR-4 | **双轨**：医生工作集读写落 Business（按医生归属）；院级患者信息经 **新建只读 API 直连数据底座** |
-| ADR-5 | 不复用无归属的旧 `patient/save` 作为 App「我的患者」；检验/检查等同属底座只读扩展 |
+| ADR-4 | **双轨**：医生工作集读写落 Business（按医生归属）；院内患者库为普通表 `platform_patient`，App 只读；院内对接走**库表交换** |
+| ADR-5 | 不复用无归属的旧 `patient/save` 作为 App「我的患者」；检验/检查等可同模式（表 + 只读 API） |
 | ADR-3 | App 本地仍按 OpenIM userID 分库；与 Business `doctor_user_id` 一致 |
 | ADR-6 | P2 子分期：P2a 工作集落库 → P2b 院内检索 → P2c custom110/批量/后台发送 |
 | ADR-7 | 医生身份：请求头 `doctorUserId`（OpenIM userID）；与 `appId` 并用 |
@@ -874,7 +876,7 @@ sequenceDiagram
 
 ### 15.3 Business · 表 `doctor_patient`
 
-Flyway：`sqlite` / `h2` 各增 `V3__doctor_patient.sql`（风格对齐现有 `V1__init_schema.sql`）。
+Flyway：`sqlite` / `h2` 的 `V1__init_schema.sql` 含 `doctor_patient` 与 `platform_patient`（未上线，不保留历史迁移）。
 
 | 列 | 说明 |
 |----|------|
@@ -1097,7 +1099,7 @@ flowchart TD
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/business/platform-patient/query` | 只读；Business 代理底座；无底座返回空 |
+| POST | `/api/business/platform-patient/query` | 只读；查 `platform_patient` 表 |
 
 App UI 按 §15.7b；加入走 P2a save。
 
@@ -1115,14 +1117,14 @@ App UI 按 §15.7b；加入走 P2a save。
 - [ ] 换机同账号可拉回工作集  
 - [ ] 无业务键不上云，保持 `local_only`  
 - [ ] dirty 可重试；无网可录可看本地  
-- [ ] 旧 `/api/business/patient/*` 无回归  
+- [x] 旧 `/api/business/patient/*` 已移除，由 `doctor-patient` / `platform-patient` 替代  
 
 **P2b**
 
 - [ ] 「添加」→ 动作面板 → 院内检索全屏页  
 - [ ] 空态主按钮直达检索  
 - [ ] 加入后进详情；已添加不重复 save  
-- [ ] App 无写底座入口  
+- [ ] App 无写院内患者库入口  
 
 **P2c**
 
@@ -1134,10 +1136,10 @@ App UI 按 §15.7b；加入走 P2a save。
 
 **Business**
 
-- [ ] `V3__doctor_patient.sql`（sqlite + h2）  
+- [x] `V1__init_schema.sql` 含 `doctor_patient` / `platform_patient`（sqlite + h2）  
 - [ ] Entity/DTO/Mapper/Service/ApiController  
 - [ ] `doctorUserId` 请求头校验  
-- [ ]（P2b）`platform-patient/query` + 底座配置/Mock  
+- [ ]（P2b）`platform-patient/query`（读表；院内对接库表交换）  
 
 **App**
 
@@ -1154,7 +1156,9 @@ App UI 按 §15.7b；加入走 P2a save。
 
 | 日期 | 说明 |
 |------|------|
-| 2026-07-23 | **P2b 实施**：`platform-patient/query`（默认 Mock）；App「添加」动作面板 + 从院内检索全屏页 |
+| 2026-07-23 | 产品文案：「院级患者」统一为「院内患者库」（API 标识 `platform-patient` 不变） |
+| 2026-07-23 | 院内患者库定为普通表：去掉 mock/HTTP 代理；院内对接约定**库表交换** |
+| 2026-07-23 | **P2b 实施**：`platform-patient/query`；App「添加」动作面板 + 从院内检索全屏页 |
 | 2026-07-23 | **P2a 实施**：Business `doctor_patient` + API；App Host/同步/列表下拉刷新与同步角标 |
 | 2026-07-22 | **P2 实施细则 §15**：P2a/b/c 子分期；doctor-patient 表/API JSON；同步算法；院内检索入口（单一「添加」+ 动作面板）与示意图；ADR-6/7；标注 P0/P1 已落地 |
 | 2026-07-21 | 初稿：工作台 Tab、患者与长录音、单条发送 MVP |

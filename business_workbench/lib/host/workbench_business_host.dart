@@ -16,7 +16,7 @@ abstract class WorkbenchBusinessHost {
 
   Future<void> deleteMyPatient({required String id});
 
-  /// P2b：院级患者只读查询
+  /// P2b：院内患者库只读查询
   Future<PlatformPatientPage> queryPlatformPatients({
     int pageNum = 1,
     int pageSize = 20,
