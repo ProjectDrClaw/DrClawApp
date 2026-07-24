@@ -186,7 +186,6 @@ class _ChatItemViewState extends State<ChatItemView> {
             child = ChatToolGuardResultView(
               approved: runtime['approved'] == true,
               toolName: '${runtime['toolName'] ?? ''}',
-              detail: '${runtime['detail'] ?? ''}',
             );
           } else {
             child = ChatAgentRuntimeView(

@@ -91,12 +91,6 @@ class AgentCardLabels {
     return '已同意';
   }
 
-  static String commandHint({required bool approved, String? scope}) {
-    if (!approved) return '该操作将不会执行';
-    if (scope == 'pattern') return '同类操作之后可自动通过';
-    return '将继续执行该操作';
-  }
-
   /// 会话列表摘要
   static String conversationSummary({
     required String kind,

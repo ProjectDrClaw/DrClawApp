@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/src/res/styles.dart';
 import 'package:openim_common/src/widgets/chat/agent_card_labels.dart';
 
-/// 过程消息：调用中 / 已完成 / 正在思考
-class ChatAgentRuntimeView extends StatefulWidget {
+/// 过程消息精简条：思考 / 执行中 / 已完成
+class ChatAgentRuntimeView extends StatelessWidget {
   const ChatAgentRuntimeView({
     Key? key,
     required this.kind,
@@ -20,62 +19,42 @@ class ChatAgentRuntimeView extends StatefulWidget {
   final String body;
   final String text;
 
-  @override
-  State<ChatAgentRuntimeView> createState() => _ChatAgentRuntimeViewState();
-}
-
-class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
-  bool _expanded = false;
-
-  bool get _isThinking => widget.kind == 'thinking';
-  bool get _isCall => widget.kind == 'tool_call';
+  bool get _isThinking => kind == 'thinking';
+  bool get _isCall => kind == 'tool_call';
 
   String get _title {
     if (_isThinking) return '正在思考';
-    if (_isCall) return '正在执行';
-    return '操作已完成';
+    final tool = AgentCardLabels.tool(toolName);
+    if (_isCall) return '正在执行 · $tool';
+    return '已完成 · $tool';
   }
 
-  String get _subtitle {
-    if (_isThinking) return '整理信息并准备下一步';
-    final tool = AgentCardLabels.tool(widget.toolName);
-    if (_isCall) return '进行中：$tool';
-    return '已完成：$tool';
+  String get _preview {
+    final raw = _isThinking ? text.trim() : body.trim();
+    return AgentCardLabels.preview(raw, maxChars: 72);
   }
 
   IconData get _icon {
-    if (_isThinking) return Icons.lightbulb_outline;
-    if (_isCall) return Icons.play_circle_outline;
-    return Icons.task_alt_outlined;
+    if (_isThinking) return Icons.more_horiz;
+    if (_isCall) return Icons.play_arrow_rounded;
+    return Icons.check_rounded;
   }
 
   Color get _accent {
-    if (_isThinking) return const Color(0xFF7C3AED);
+    if (_isThinking) return const Color(0xFF8E9AB0);
     if (_isCall) return const Color(0xFF2563EB);
     return const Color(0xFF16A34A);
   }
 
-  String get _content {
-    if (_isThinking) return widget.text.trim();
-    return widget.body.trim();
-  }
-
-  String get _preview => AgentCardLabels.preview(_content, maxChars: 90);
-
-  Future<void> _copy() async {
-    if (_content.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: _content));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final content = _content;
+    final preview = _preview;
     return Container(
-      width: 280.w,
-      padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
+      constraints: BoxConstraints(maxWidth: 260.w),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: Styles.c_FFFFFF,
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: const Color(0xFFE8ECF1)),
       ),
       child: Column(
@@ -83,93 +62,29 @@ class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: EdgeInsets.all(6.w),
-                decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(_icon, size: 16.sp, color: _accent),
-              ),
-              8.horizontalSpace,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _title,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Styles.c_0C1C33,
-                      ),
-                    ),
-                    2.verticalSpace,
-                    Text(
-                      _subtitle,
-                      style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (_preview.isNotEmpty) ...[
-            10.verticalSpace,
-            Text(
-              _preview,
-              maxLines: _expanded ? null : 2,
-              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13.sp,
-                height: 1.4,
-                color: Styles.c_0C1C33,
-              ),
-            ),
-          ],
-          if (content.isNotEmpty && content.length > 40) ...[
-            8.verticalSpace,
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () => setState(() => _expanded = !_expanded),
-                  child: Text(
-                    _expanded ? '收起' : '查看更多',
-                    style: TextStyle(fontSize: 12.sp, color: Styles.c_0089FF),
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _copy,
-                  child: Text(
-                    '复制详情',
-                    style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (_expanded && content.isNotEmpty) ...[
-            8.verticalSpace,
-            Container(
-              width: double.infinity,
-              constraints: BoxConstraints(maxHeight: 150.h),
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: SingleChildScrollView(
+              Icon(_icon, size: 16.sp, color: _accent),
+              6.horizontalSpace,
+              Flexible(
                 child: Text(
-                  content,
+                  _title,
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    height: 1.4,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
                     color: Styles.c_0C1C33,
                   ),
                 ),
               ),
+            ],
+          ),
+          if (preview.isNotEmpty) ...[
+            4.verticalSpace,
+            Text(
+              preview,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
             ),
           ],
         ],

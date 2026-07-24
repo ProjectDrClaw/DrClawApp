@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/src/widgets/chat/agent_card_labels.dart';
 
-/// 用户确认操作后的友好状态条
+/// 用户确认操作后的精简状态条
 class ChatToolGuardCommandView extends StatelessWidget {
   const ChatToolGuardCommandView({
     Key? key,
@@ -17,9 +17,6 @@ class ChatToolGuardCommandView extends StatelessWidget {
 
   String get _title =>
       AgentCardLabels.commandAction(approved: approved, scope: scope);
-
-  String get _hint =>
-      AgentCardLabels.commandHint(approved: approved, scope: scope);
 
   IconData get _icon {
     if (!approved) return Icons.close_rounded;
@@ -43,42 +40,26 @@ class ChatToolGuardCommandView extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = isISend ? Colors.white : _fg;
     final bg = isISend ? Colors.white.withOpacity(0.18) : _bg;
-    final border =
-        isISend ? Colors.white.withOpacity(0.35) : _fg.withOpacity(0.22);
-    final hintColor =
-        isISend ? Colors.white.withOpacity(0.82) : const Color(0xFF8E9AB0);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_icon, size: 18.sp, color: fg),
-          8.horizontalSpace,
+          Icon(_icon, size: 15.sp, color: fg),
+          6.horizontalSpace,
           Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _title,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: fg,
-                  ),
-                ),
-                2.verticalSpace,
-                Text(
-                  _hint,
-                  style: TextStyle(fontSize: 12.sp, color: hintColor),
-                ),
-              ],
+            child: Text(
+              _title,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+                color: fg,
+              ),
             ),
           ),
         ],
