@@ -63,18 +63,12 @@ class PatientContextFormatter {
     return lines;
   }
 
-  /// 上传用文件名：以自定义录音标题为主（对齐飞书保留 file_name）。
-  /// 仅剔除路径非法字符，保留中文；Agent 下载时会对 URL 编码。
-  static String fileNameForRecording(LocalPatient p, LocalRecording r) {
+  /// 上传用文件名：直接用录音标题（仅剔除路径非法字符，保留中文）。
+  static String fileNameForRecording(LocalRecording r) {
     var title = PatientDisplay.recordingTitle(r)
         .replaceAll(PatientDisplay.invalidTitleChars, '_')
         .trim();
-    title = title.replaceAll(RegExp(r'\s+'), '_');
     if (title.isEmpty) title = '录音';
-    if (title.length > 40) title = title.substring(0, 40);
-
-    final bed = p.bedNumber.trim();
-    final prefix = bed.isEmpty ? '' : '${bed}_';
-    return '$prefix${title}_${r.durationSec}s.m4a';
+    return '$title.m4a';
   }
 }

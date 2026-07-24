@@ -154,7 +154,7 @@ class RecordingDetailLogic extends GetxController {
     try {
       await host.openAgentChat();
       // 先发文件再发患者补充文案（正文不写下载地址等技术信息）
-      final fileName = PatientContextFormatter.fileNameForRecording(p, r);
+      final fileName = PatientContextFormatter.fileNameForRecording(r);
       await host.sendFileToAgent(filePath: r.filePath, fileName: fileName);
       final text = PatientContextFormatter.wardRoundRecording(p, r);
       await host.sendTextToAgent(text);

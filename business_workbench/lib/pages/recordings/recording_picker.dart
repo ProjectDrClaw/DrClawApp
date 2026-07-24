@@ -27,7 +27,7 @@ class RecordingPickResult {
       PatientContextFormatter.wardRoundRecording(patient, recording);
 
   String get fileName =>
-      PatientContextFormatter.fileNameForRecording(patient, recording);
+      PatientContextFormatter.fileNameForRecording(recording);
 }
 
 /// 展示查房录音选择器；取消返回 null
