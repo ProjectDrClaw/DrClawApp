@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:openim_common/src/res/styles.dart';
+import 'package:openim_common/src/widgets/chat/agent_card_labels.dart';
 
-/// 用户发出的 `/approval` 命令在聊天气泡中的友好渲染
+/// 用户确认操作后的友好状态条
 class ChatToolGuardCommandView extends StatelessWidget {
   const ChatToolGuardCommandView({
     Key? key,
@@ -13,20 +13,17 @@ class ChatToolGuardCommandView extends StatelessWidget {
 
   final bool isISend;
   final bool approved;
-
-  /// `exact` | `pattern` | null
   final String? scope;
 
-  String get _title {
-    if (!approved) return '已拒绝';
-    if (scope == 'pattern') return '总是允许';
-    if (scope == 'exact') return '仅本次批准';
-    return '已批准';
-  }
+  String get _title =>
+      AgentCardLabels.commandAction(approved: approved, scope: scope);
+
+  String get _hint =>
+      AgentCardLabels.commandHint(approved: approved, scope: scope);
 
   IconData get _icon {
     if (!approved) return Icons.close_rounded;
-    if (scope == 'pattern') return Icons.all_inclusive;
+    if (scope == 'pattern') return Icons.verified_user_outlined;
     return Icons.check_rounded;
   }
 
@@ -46,32 +43,42 @@ class ChatToolGuardCommandView extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = isISend ? Colors.white : _fg;
     final bg = isISend ? Colors.white.withOpacity(0.18) : _bg;
-    final border = isISend
-        ? Colors.white.withOpacity(0.35)
-        : _fg.withOpacity(0.25);
+    final border =
+        isISend ? Colors.white.withOpacity(0.35) : _fg.withOpacity(0.22);
+    final hintColor =
+        isISend ? Colors.white.withOpacity(0.82) : const Color(0xFF8E9AB0);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.shield_outlined, size: 15.sp, color: fg),
-          6.horizontalSpace,
-          Icon(_icon, size: 15.sp, color: fg),
-          4.horizontalSpace,
+          Icon(_icon, size: 18.sp, color: fg),
+          8.horizontalSpace,
           Flexible(
-            child: Text(
-              _title,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: fg,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _title,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
+                ),
+                2.verticalSpace,
+                Text(
+                  _hint,
+                  style: TextStyle(fontSize: 12.sp, color: hintColor),
+                ),
+              ],
             ),
           ),
         ],

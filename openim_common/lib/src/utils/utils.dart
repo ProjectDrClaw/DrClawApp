@@ -82,20 +82,53 @@ class IMUtils {
     }
 
     final approved = action == 'approve';
-    String label;
-    if (!approved) {
-      label = '[已拒绝]';
-    } else if (scope == 'pattern') {
-      label = '[总是允许]';
-    } else if (scope == 'exact') {
-      label = '[仅本次批准]';
-    } else {
-      label = '[已批准]';
-    }
+    final label = AgentCardLabels.conversationSummary(
+      kind: 'command',
+      approved: approved,
+      scope: scope,
+    );
     return {
       'approved': approved,
       'scope': scope,
       'label': label,
+    };
+  }
+
+  /// 解析 Agent 审批回执：`✅ **工具已批准**` / `🚫 **工具已拒绝**`
+  static Map<String, dynamic>? parseToolGuardResultText(String? text) {
+    final raw = (text ?? '').trim();
+    if (raw.isEmpty || raw.startsWith('/approval')) return null;
+
+    final head = raw.length > 40 ? raw.substring(0, 40) : raw;
+    final approved = RegExp(r'(?:✅\s*)?\*\*工具已批准\*\*|✅\s*工具已批准').hasMatch(head);
+    final denied = RegExp(r'(?:🚫\s*)?\*\*工具已拒绝\*\*|🚫\s*工具已拒绝').hasMatch(head);
+    if (!approved && !denied) return null;
+
+    String pick(RegExp re) {
+      final m = re.firstMatch(raw);
+      return (m?.group(1) ?? '').trim();
+    }
+
+    final toolName = pick(RegExp(r'[-*]\s*工具[:：]\s*`?([^`\n]+)`?'));
+    final requestId = pick(RegExp(r'[-*]\s*请求\s*ID[:：]\s*`?([^`\n]+)`?'));
+    final reason = pick(RegExp(r'[-*]\s*原因[:：]\s*(.+)'));
+    final status = pick(RegExp(r'[-*]\s*状态[:：]\s*(.+)'));
+    final detail = reason.isNotEmpty
+        ? reason
+        : (status.isNotEmpty ? status : '');
+
+    final ok = approved && !denied;
+    return {
+      'kind': 'approval_result',
+      'approved': ok,
+      'toolName': toolName,
+      'requestId': requestId,
+      'detail': detail,
+      'label': AgentCardLabels.conversationSummary(
+        kind: 'approval_result',
+        toolName: toolName,
+        approved: ok,
+      ),
     };
   }
 
@@ -104,10 +137,14 @@ class IMUtils {
     final raw = (text ?? '').trim();
     if (raw.isEmpty) return null;
 
+    // 审批回执优先（也带 ✅，避免被工具结果正则吃掉）
+    final resultNotice = parseToolGuardResultText(raw);
+    if (resultNotice != null) return resultNotice;
+
     final callMatch = RegExp(
       r'^(?:🔧\s*)?\*\*(.+?)\*\*\s*\n```\n([\s\S]*?)```\s*$',
     ).firstMatch(raw);
-    if (callMatch != null && !raw.contains('**:')) {
+    if (callMatch != null && !raw.contains('**:') && !raw.contains('工具已')) {
       return {
         'kind': 'tool_call',
         'toolName': callMatch.group(1)?.trim() ?? 'tool',
@@ -119,7 +156,7 @@ class IMUtils {
     final resultMatch = RegExp(
       r'^(?:✅\s*)?\*\*(.+?)\*\*:\s*(?:\n```\n([\s\S]*?)```)?\s*$',
     ).firstMatch(raw);
-    if (resultMatch != null) {
+    if (resultMatch != null && !raw.contains('工具已')) {
       return {
         'kind': 'tool_result',
         'toolName': resultMatch.group(1)?.trim() ?? 'tool',
@@ -776,12 +813,13 @@ class IMUtils {
           final runtime = parseAgentRuntimeText(content);
           if (runtime != null) {
             final kind = '${runtime['kind']}';
-            if (kind == 'tool_call') {
-              content = '[工具调用] ${runtime['toolName']}';
-            } else if (kind == 'tool_result') {
-              content = '[工具结果] ${runtime['toolName']}';
+            if (kind == 'approval_result') {
+              content = '${runtime['label'] ?? '[审批结果]'}';
             } else {
-              content = '[思考过程]';
+              content = AgentCardLabels.conversationSummary(
+                kind: kind,
+                toolName: '${runtime['toolName'] ?? ''}',
+              );
             }
           }
           break;
@@ -825,16 +863,37 @@ class IMUtils {
               content = StrRes.groupDisbanded;
               break;
             case CustomMessageType.toolGuardApproval:
-              content = '[工具审批]';
+              {
+                final data = map['data'];
+                final toolName = data is Map ? '${data['toolName'] ?? ''}' : '';
+                content = AgentCardLabels.conversationSummary(
+                  kind: 'approval',
+                  toolName: toolName,
+                );
+              }
               break;
             case CustomMessageType.toolCall:
-              content = '[工具调用]';
+              {
+                final data = map['data'];
+                final toolName = data is Map ? '${data['toolName'] ?? ''}' : '';
+                content = AgentCardLabels.conversationSummary(
+                  kind: 'tool_call',
+                  toolName: toolName,
+                );
+              }
               break;
             case CustomMessageType.toolResult:
-              content = '[工具结果]';
+              {
+                final data = map['data'];
+                final toolName = data is Map ? '${data['toolName'] ?? ''}' : '';
+                content = AgentCardLabels.conversationSummary(
+                  kind: 'tool_result',
+                  toolName: toolName,
+                );
+              }
               break;
             case CustomMessageType.thinking:
-              content = '[思考过程]';
+              content = AgentCardLabels.conversationSummary(kind: 'thinking');
               break;
             default:
               content = '[${StrRes.unsupportedMessage}]';

@@ -182,12 +182,20 @@ class _ChatItemViewState extends State<ChatItemView> {
         final runtime = IMUtils.parseAgentRuntimeText(text);
         if (runtime != null) {
           isBubbleBg = false;
-          child = ChatAgentRuntimeView(
-            kind: '${runtime['kind']}',
-            toolName: '${runtime['toolName'] ?? ''}',
-            body: '${runtime['body'] ?? ''}',
-            text: '${runtime['text'] ?? ''}',
-          );
+          if ('${runtime['kind']}' == 'approval_result') {
+            child = ChatToolGuardResultView(
+              approved: runtime['approved'] == true,
+              toolName: '${runtime['toolName'] ?? ''}',
+              detail: '${runtime['detail'] ?? ''}',
+            );
+          } else {
+            child = ChatAgentRuntimeView(
+              kind: '${runtime['kind']}',
+              toolName: '${runtime['toolName'] ?? ''}',
+              body: '${runtime['body'] ?? ''}',
+              text: '${runtime['text'] ?? ''}',
+            );
+          }
         } else {
           child = ChatText(
             isISend: _isISend,

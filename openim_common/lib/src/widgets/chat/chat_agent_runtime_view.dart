@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/src/res/styles.dart';
+import 'package:openim_common/src/widgets/chat/agent_card_labels.dart';
 
-/// Agent 运行时消息卡片：工具调用 / 工具结果 / 思考
+/// 过程消息：调用中 / 已完成 / 正在思考
 class ChatAgentRuntimeView extends StatefulWidget {
   const ChatAgentRuntimeView({
     Key? key,
@@ -30,15 +31,22 @@ class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
   bool get _isCall => widget.kind == 'tool_call';
 
   String get _title {
-    if (_isThinking) return '思考过程';
-    if (_isCall) return '工具调用';
-    return '工具结果';
+    if (_isThinking) return '正在思考';
+    if (_isCall) return '正在执行';
+    return '操作已完成';
+  }
+
+  String get _subtitle {
+    if (_isThinking) return '整理信息并准备下一步';
+    final tool = AgentCardLabels.tool(widget.toolName);
+    if (_isCall) return '进行中：$tool';
+    return '已完成：$tool';
   }
 
   IconData get _icon {
-    if (_isThinking) return Icons.psychology_alt_outlined;
-    if (_isCall) return Icons.build_circle_outlined;
-    return Icons.check_circle_outline;
+    if (_isThinking) return Icons.lightbulb_outline;
+    if (_isCall) return Icons.play_circle_outline;
+    return Icons.task_alt_outlined;
   }
 
   Color get _accent {
@@ -52,15 +60,11 @@ class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
     return widget.body.trim();
   }
 
-  String get _subtitle {
-    if (_isThinking) return '';
-    return widget.toolName.trim().isEmpty ? 'tool' : widget.toolName.trim();
-  }
+  String get _preview => AgentCardLabels.preview(_content, maxChars: 90);
 
   Future<void> _copy() async {
-    final text = _content;
-    if (text.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: text));
+    if (_content.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: _content));
   }
 
   @override
@@ -68,10 +72,10 @@ class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
     final content = _content;
     return Container(
       width: 280.w,
-      padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+      padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
       decoration: BoxDecoration(
         color: Styles.c_FFFFFF,
-        borderRadius: BorderRadius.circular(10.r),
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(color: const Color(0xFFE8ECF1)),
       ),
       child: Column(
@@ -80,113 +84,93 @@ class _ChatAgentRuntimeViewState extends State<ChatAgentRuntimeView> {
         children: [
           Row(
             children: [
-              Icon(_icon, size: 16.sp, color: _accent),
-              6.horizontalSpace,
-              Expanded(
-                child: Text(
-                  _title,
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Styles.c_0C1C33,
-                  ),
-                ),
-              ),
-              if (content.isNotEmpty)
-                GestureDetector(
-                  onTap: _copy,
-                  child: Icon(Icons.copy, size: 14.sp, color: Styles.c_8E9AB0),
-                ),
-            ],
-          ),
-          if (_subtitle.isNotEmpty) ...[
-            8.verticalSpace,
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7F8FA),
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              child: Text(
-                _subtitle,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Styles.c_0C1C33,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
-          ],
-          if (content.isNotEmpty) ...[
-            8.verticalSpace,
-            InkWell(
-              onTap: () => setState(() => _expanded = !_expanded),
-              borderRadius: BorderRadius.circular(6.r),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+              Container(
+                padding: EdgeInsets.all(6.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FA),
-                  borderRadius: BorderRadius.circular(6.r),
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
-                child: Row(
+                child: Icon(_icon, size: 16.sp, color: _accent),
+              ),
+              8.horizontalSpace,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      _expanded
-                          ? Icons.keyboard_arrow_down
-                          : Icons.keyboard_arrow_right,
-                      size: 16.sp,
-                      color: Styles.c_8E9AB0,
-                    ),
-                    4.horizontalSpace,
-                    Expanded(
-                      child: Text(
-                        _expanded ? '收起详情' : '展开详情',
-                        style:
-                            TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
+                    Text(
+                      _title,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Styles.c_0C1C33,
                       ),
+                    ),
+                    2.verticalSpace,
+                    Text(
+                      _subtitle,
+                      style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+          if (_preview.isNotEmpty) ...[
+            10.verticalSpace,
+            Text(
+              _preview,
+              maxLines: _expanded ? null : 2,
+              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13.sp,
+                height: 1.4,
+                color: Styles.c_0C1C33,
+              ),
             ),
-            if (_expanded) ...[
-              6.verticalSpace,
-              Container(
-                width: double.infinity,
-                constraints: BoxConstraints(maxHeight: 160.h),
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FA),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
-                child: SingleChildScrollView(
+          ],
+          if (content.isNotEmpty && content.length > 40) ...[
+            8.verticalSpace,
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _expanded = !_expanded),
                   child: Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      height: 1.4,
-                      color: Styles.c_0C1C33,
-                      fontFamily: 'monospace',
-                    ),
+                    _expanded ? '收起' : '查看更多',
+                    style: TextStyle(fontSize: 12.sp, color: Styles.c_0089FF),
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _copy,
+                  child: Text(
+                    '复制详情',
+                    style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (_expanded && content.isNotEmpty) ...[
+            8.verticalSpace,
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(maxHeight: 150.h),
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  content,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    height: 1.4,
+                    color: Styles.c_0C1C33,
                   ),
                 ),
               ),
-            ] else ...[
-              6.verticalSpace,
-              Text(
-                content,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  height: 1.35,
-                  color: Styles.c_8E9AB0,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
+            ),
           ],
         ],
       ),
