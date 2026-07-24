@@ -20,14 +20,14 @@ class ChatToolGuardCommandView extends StatelessWidget {
 
   IconData get _icon {
     if (!approved) return Icons.close_rounded;
-    if (scope == 'pattern') return Icons.verified_user_outlined;
+    if (scope == 'pattern') return Icons.shield_outlined;
     return Icons.check_rounded;
   }
 
   Color get _fg {
     if (!approved) return const Color(0xFFE53935);
-    if (scope == 'pattern') return const Color(0xFFFB8C00);
-    return const Color(0xFF43A047);
+    if (scope == 'pattern') return const Color(0xFFEA8A1A);
+    return const Color(0xFF2F9E55);
   }
 
   Color get _bg {
@@ -36,22 +36,39 @@ class ChatToolGuardCommandView extends StatelessWidget {
     return const Color(0xFFF0FDF4);
   }
 
+  Color get _border {
+    if (!approved) return const Color(0xFFFFD4D0);
+    if (scope == 'pattern') return const Color(0xFFFFE4C4);
+    return const Color(0xFFCDEAD6);
+  }
+
   @override
   Widget build(BuildContext context) {
     final fg = isISend ? Colors.white : _fg;
-    final bg = isISend ? Colors.white.withOpacity(0.18) : _bg;
+    final bg = isISend ? Colors.white.withOpacity(0.16) : _bg;
+    final border = isISend ? Colors.white.withOpacity(0.28) : _border;
+    final iconBg = isISend ? Colors.white.withOpacity(0.18) : Colors.white;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      padding: EdgeInsets.fromLTRB(8.w, 7.h, 12.w, 7.h),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(10.r),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: 15.sp, color: fg),
-          6.horizontalSpace,
+          Container(
+            width: 22.w,
+            height: 22.w,
+            decoration: BoxDecoration(
+              color: iconBg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_icon, size: 13.sp, color: fg),
+          ),
+          7.horizontalSpace,
           Flexible(
             child: Text(
               _title,
@@ -59,6 +76,7 @@ class ChatToolGuardCommandView extends StatelessWidget {
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
                 color: fg,
+                height: 1.2,
               ),
             ),
           ),

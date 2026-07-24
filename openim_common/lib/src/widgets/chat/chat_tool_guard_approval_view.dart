@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/src/res/styles.dart';
 import 'package:openim_common/src/widgets/chat/agent_card_labels.dart';
 
-/// 安全确认卡片（精简版）
+/// 安全确认卡片（精简美化）
 class ChatToolGuardApprovalView extends StatefulWidget {
   const ChatToolGuardApprovalView({
     Key? key,
@@ -52,6 +52,7 @@ class ChatToolGuardApprovalView extends StatefulWidget {
 
 class _ChatToolGuardApprovalViewState extends State<ChatToolGuardApprovalView> {
   static const _accent = Color(0xFFF97316);
+  static const _surface = Color(0xFFFFFBF7);
   static const _denyBg = Color(0xFFFFF1F0);
   static const _denyFg = Color(0xFFE53935);
 
@@ -147,79 +148,180 @@ class _ChatToolGuardApprovalViewState extends State<ChatToolGuardApprovalView> {
   Widget build(BuildContext context) {
     final detail = _detail;
     return Container(
-      width: 280.w,
-      padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 12.h),
+      width: 276.w,
       decoration: BoxDecoration(
-        color: Styles.c_FFFFFF,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFE8ECF1)),
+        color: _surface,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: const Color(0xFFFFE4CC)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.shield_outlined, size: 16.sp, color: _accent),
-              6.horizontalSpace,
-              Expanded(
-                child: Text(
-                  '需要确认 · $_friendlyTool',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Styles.c_0C1C33,
-                  ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 3.w,
+              decoration: BoxDecoration(
+                color: _accent,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(14.r),
+                  bottomLeft: Radius.circular(14.r),
                 ),
-              ),
-              if (_pending && widget.timeoutSeconds > 0)
-                Text(
-                  _timerText,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Styles.c_8E9AB0,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-            ],
-          ),
-          if (detail.isNotEmpty) ...[
-            8.verticalSpace,
-            Text(
-              detail,
-              maxLines: _moreExpanded ? 8 : 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13.sp,
-                height: 1.4,
-                color: Styles.c_8E9AB0,
               ),
             ),
-            if (detail.length > 60) ...[
-              4.verticalSpace,
-              GestureDetector(
-                onTap: () => setState(() => _moreExpanded = !_moreExpanded),
-                child: Text(
-                  _moreExpanded ? '收起' : '展开',
-                  style: TextStyle(fontSize: 12.sp, color: Styles.c_0089FF),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 28.w,
+                          height: 28.w,
+                          decoration: BoxDecoration(
+                            color: _accent.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(9.r),
+                          ),
+                          child: Icon(
+                            Icons.verified_user_outlined,
+                            size: 15.sp,
+                            color: _accent,
+                          ),
+                        ),
+                        8.horizontalSpace,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '需要确认',
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Styles.c_0C1C33,
+                                  height: 1.2,
+                                ),
+                              ),
+                              2.verticalSpace,
+                              Text(
+                                _friendlyTool,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Styles.c_8E9AB0,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_pending && widget.timeoutSeconds > 0)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 7.w,
+                              vertical: 3.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20.r),
+                              border: Border.all(
+                                color: const Color(0xFFFFE4CC),
+                              ),
+                            ),
+                            child: Text(
+                              _timerText,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: _accent,
+                                fontWeight: FontWeight.w500,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (detail.isNotEmpty || _isHighRisk) ...[
+                      8.verticalSpace,
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _moreExpanded = !_moreExpanded),
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
+                            Text(
+                              _moreExpanded ? '收起详情' : '查看详情',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Styles.c_0089FF,
+                              ),
+                            ),
+                            Icon(
+                              _moreExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 16.sp,
+                              color: Styles.c_0089FF,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (_moreExpanded) ...[
+                      if (detail.isNotEmpty) ...[
+                        8.verticalSpace,
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10.w,
+                            vertical: 8.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Text(
+                            detail,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              height: 1.45,
+                              color: Styles.c_0C1C33,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (_isHighRisk) ...[
+                        8.verticalSpace,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF1F0),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: Text(
+                            AgentCardLabels.severity(widget.severity),
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: _denyFg,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                    12.verticalSpace,
+                    _buildActions(),
+                  ],
                 ),
-              ),
-            ],
-          ],
-          if (_isHighRisk) ...[
-            6.verticalSpace,
-            Text(
-              AgentCardLabels.severity(widget.severity),
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFFE53935),
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-          12.verticalSpace,
-          _buildActions(),
-        ],
+        ),
       ),
     );
   }
@@ -263,17 +365,18 @@ class _ChatToolGuardApprovalViewState extends State<ChatToolGuardApprovalView> {
           8.verticalSpace,
           SizedBox(
             width: double.infinity,
+            height: 34.h,
             child: OutlinedButton(
               onPressed: _alwaysAllowDisabled
                   ? null
                   : (widget.onApprovePattern ?? widget.onApprove),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Styles.c_0C1C33,
-                side: const BorderSide(color: Color(0xFFE8EAEF)),
-                padding: EdgeInsets.symmetric(vertical: 8.h),
-                minimumSize: Size(0, 36.h),
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFFFE4CC)),
+                padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(18.r),
                 ),
               ),
               child: Text('以后都允许', style: TextStyle(fontSize: 13.sp)),
@@ -285,41 +388,45 @@ class _ChatToolGuardApprovalViewState extends State<ChatToolGuardApprovalView> {
   }
 
   Widget _denyButton() {
-    return TextButton(
-      onPressed: widget.onDeny,
-      style: TextButton.styleFrom(
-        backgroundColor: _denyBg,
-        foregroundColor: _denyFg,
-        elevation: 0,
-        padding: EdgeInsets.symmetric(vertical: 8.h),
-        minimumSize: Size(0, 36.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
+    return SizedBox(
+      height: 34.h,
+      child: TextButton(
+        onPressed: widget.onDeny,
+        style: TextButton.styleFrom(
+          backgroundColor: _denyBg,
+          foregroundColor: _denyFg,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18.r),
+          ),
         ),
-      ),
-      child: Text(
-        '拒绝',
-        style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+        child: Text(
+          '拒绝',
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
 
   Widget _primaryButton(String label, {VoidCallback? onPressed}) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: _accent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        padding: EdgeInsets.symmetric(vertical: 8.h),
-        minimumSize: Size(0, 36.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
+    return SizedBox(
+      height: 34.h,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18.r),
+          ),
         ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

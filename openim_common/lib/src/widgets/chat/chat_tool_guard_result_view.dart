@@ -14,10 +14,13 @@ class ChatToolGuardResultView extends StatelessWidget {
   final String toolName;
 
   Color get _fg =>
-      approved ? const Color(0xFF16A34A) : const Color(0xFFE53935);
+      approved ? const Color(0xFF2F9E55) : const Color(0xFFE53935);
 
   Color get _bg =>
       approved ? const Color(0xFFF0FDF4) : const Color(0xFFFFF1F0);
+
+  Color get _border =>
+      approved ? const Color(0xFFCDEAD6) : const Color(0xFFFFD4D0);
 
   IconData get _icon =>
       approved ? Icons.check_rounded : Icons.close_rounded;
@@ -32,16 +35,25 @@ class ChatToolGuardResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(maxWidth: 240.w),
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      padding: EdgeInsets.fromLTRB(8.w, 7.h, 12.w, 7.h),
       decoration: BoxDecoration(
         color: _bg,
-        borderRadius: BorderRadius.circular(10.r),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: _border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: 15.sp, color: _fg),
-          6.horizontalSpace,
+          Container(
+            width: 22.w,
+            height: 22.w,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_icon, size: 13.sp, color: _fg),
+          ),
+          7.horizontalSpace,
           Flexible(
             child: Text(
               _title,
@@ -49,6 +61,7 @@ class ChatToolGuardResultView extends StatelessWidget {
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
                 color: _fg,
+                height: 1.2,
               ),
             ),
           ),
