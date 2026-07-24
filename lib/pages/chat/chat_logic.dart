@@ -187,6 +187,7 @@ class ChatLogic extends SuperController {
               messageList.add(message);
               scrollBottom();
             }
+            _maybeShowToolGuardApprovalDialog(message);
           }
         }
       }
@@ -375,6 +376,181 @@ class ChatLogic extends SuperController {
     }
 
     _sendMessage(message);
+  }
+
+  /// 回发 Agent Tool Guard 审批命令，并立刻更新本地卡片状态
+  /// [scope]: `exact` 仅本次；`similar`/`pattern` 总是允许；null 默认仅本次
+  Future<void> sendToolGuardApproval(
+    Message cardMessage, {
+    required String requestId,
+    required bool approve,
+    String? scope,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+
+    final parsed = IMUtils.parseCustomMessage(cardMessage);
+    final currentStatus = '${parsed?['status'] ?? 'pending'}';
+    if (currentStatus != 'pending' && currentStatus.isNotEmpty) {
+      return;
+    }
+
+    final status = approve ? 'approved' : 'denied';
+    await _markToolGuardCardStatus(cardMessage, status);
+
+    final buffer = StringBuffer('/approval ');
+    if (approve) {
+      buffer.write('approve $id');
+      final normalized = (scope ?? 'exact').trim().toLowerCase();
+      if (normalized == 'similar' || normalized == 'pattern') {
+        buffer.write(' --pattern');
+      } else {
+        buffer.write(' --exact');
+      }
+    } else {
+      buffer.write('deny $id');
+    }
+    final message = await OpenIM.iMManager.messageManager.createTextMessage(
+      text: buffer.toString(),
+    );
+    await _sendMessage(message);
+  }
+
+  Map<String, dynamic> _toolParamsFromData(dynamic raw) {
+    final out = <String, dynamic>{};
+    if (raw is Map) {
+      raw.forEach((k, v) => out['$k'] = v);
+    }
+    return out;
+  }
+
+  /// 将审批卡片标为已批准/已拒绝（内存 + localEx 持久化）
+  Future<void> _markToolGuardCardStatus(Message message, String status) async {
+    try {
+      final raw = message.customElem?.data;
+      if (raw != null && raw.isNotEmpty) {
+        final map = json.decode(raw);
+        if (map is Map && map['data'] is Map) {
+          (map['data'] as Map)['status'] = status;
+          message.customElem!.data = json.encode(map);
+        }
+      }
+      final localEx = json.encode({'toolGuardStatus': status});
+      message.localEx = localEx;
+      final clientMsgID = message.clientMsgID;
+      if (clientMsgID != null && clientMsgID.isNotEmpty) {
+        await OpenIM.iMManager.messageManager.setMessageLocalEx(
+          conversationID: conversationInfo.conversationID,
+          clientMsgID: clientMsgID,
+          localEx: localEx,
+        );
+      }
+    } catch (e, s) {
+      Logger.print('mark tool guard status failed: $e\n$s');
+    }
+    messageList.refresh();
+  }
+
+  /// 当前正在展示的审批弹窗 requestId（防重复弹）
+  String? _activeApprovalDialogId;
+
+  /// 弹窗展示工具审批（对齐 Console 卡片交互）
+  Future<void> showToolGuardApprovalDialog(Message message) async {
+    final data = IMUtils.parseCustomMessage(message);
+    if (data == null || data['viewType'] != CustomMessageType.toolGuardApproval) {
+      return;
+    }
+    final requestId = '${data['requestId'] ?? ''}'.trim();
+    if (requestId.isEmpty) return;
+    final status = '${data['status'] ?? 'pending'}';
+    if (status != 'pending' && status.isNotEmpty) return;
+    if (_activeApprovalDialogId == requestId) return;
+    if (_activeApprovalDialogId != null) return;
+
+    Future<void> decide({required bool approve, String? scope}) async {
+      if (Get.isDialogOpen == true) Get.back();
+      await sendToolGuardApproval(
+        message,
+        requestId: requestId,
+        approve: approve,
+        scope: scope,
+      );
+    }
+
+    _activeApprovalDialogId = requestId;
+    try {
+      await Get.dialog(
+        barrierDismissible: true,
+        Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Material(
+            color: Colors.transparent,
+            child: SingleChildScrollView(
+              child: ChatToolGuardApprovalView(
+                toolName: '${data['toolName'] ?? 'tool'}',
+                toolSource: '${data['toolSource'] ?? ''}',
+                severity: '${data['severity'] ?? ''}',
+                findingsCount: data['findingsCount'] is int
+                    ? data['findingsCount'] as int
+                    : int.tryParse('${data['findingsCount'] ?? 0}') ?? 0,
+                summary: '${data['summary'] ?? ''}',
+                toolParams: _toolParamsFromData(data['toolParams']),
+                createdAt: data['createdAt'] is num
+                    ? (data['createdAt'] as num).toDouble()
+                    : double.tryParse('${data['createdAt'] ?? 0}') ?? 0,
+                timeoutSeconds: data['timeoutSeconds'] is num
+                    ? (data['timeoutSeconds'] as num).toDouble()
+                    : double.tryParse('${data['timeoutSeconds'] ?? 300}') ?? 300,
+                isGeneralized: data['isGeneralized'] == true,
+                exactTarget: '${data['exactTarget'] ?? ''}',
+                similarTarget: '${data['similarTarget'] ?? ''}',
+                status: status,
+                onApproveExact: () => decide(approve: true, scope: 'exact'),
+                onApprovePattern: () => decide(approve: true, scope: 'pattern'),
+                onApprove: () => decide(approve: true, scope: 'exact'),
+                onDeny: () => decide(approve: false),
+              ),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (_activeApprovalDialogId == requestId) {
+        _activeApprovalDialogId = null;
+      }
+    }
+  }
+
+  void _maybeShowToolGuardApprovalDialog(Message message) {
+    if (!message.isCustomType) return;
+    final data = IMUtils.parseCustomMessage(message);
+    if (data == null || data['viewType'] != CustomMessageType.toolGuardApproval) {
+      return;
+    }
+    final status = '${data['status'] ?? 'pending'}';
+    if (status != 'pending' && status.isNotEmpty) return;
+    // 下一帧再弹，避免与列表刷新抢同一帧
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      showToolGuardApprovalDialog(message);
+    });
+  }
+
+  void _showLatestPendingToolGuardDialog() {
+    for (var i = messageList.length - 1; i >= 0; i--) {
+      final msg = messageList[i];
+      if (!msg.isCustomType) continue;
+      final data = IMUtils.parseCustomMessage(msg);
+      if (data == null || data['viewType'] != CustomMessageType.toolGuardApproval) {
+        continue;
+      }
+      final status = '${data['status'] ?? 'pending'}';
+      if (status != 'pending' && status.isNotEmpty) continue;
+      _maybeShowToolGuardApprovalDialog(msg);
+      return;
+    }
   }
 
   Future sendPicture({required String path, bool sendNow = true}) async {
@@ -893,6 +1069,9 @@ class ChatLogic extends SuperController {
       var map = json.decode(data!);
       var customType = map['customType'];
       if (CustomMessageType.call == customType && !isInBlacklist.value) {}
+      if (CustomMessageType.toolGuardApproval == customType) {
+        await showToolGuardApprovalDialog(msg);
+      }
 
       return;
     }
@@ -1376,6 +1555,7 @@ class ChatLogic extends SuperController {
       scrollBottom();
 
       _getGroupInfoAfterLoadMessage();
+      _showLatestPendingToolGuardDialog();
     } else {
       messageList.insertAll(0, list);
     }

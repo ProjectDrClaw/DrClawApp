@@ -171,13 +171,33 @@ class _ChatItemViewState extends State<ChatItemView> {
       final text = _message.isAtTextType
           ? (_message.atTextElem?.text ?? '')
           : (_message.textElem?.content ?? '');
-      child = ChatText(
-        isISend: _isISend,
-        text: text,
-        patterns: widget.patterns,
-        textScaleFactor: widget.textScaleFactor,
-        onVisibleTrulyText: widget.onVisibleTrulyText,
-      );
+      final approvalCmd = IMUtils.parseToolGuardCommand(text);
+      if (approvalCmd != null) {
+        child = ChatToolGuardCommandView(
+          isISend: _isISend,
+          approved: approvalCmd['approved'] == true,
+          scope: approvalCmd['scope'] as String?,
+        );
+      } else {
+        final runtime = IMUtils.parseAgentRuntimeText(text);
+        if (runtime != null) {
+          isBubbleBg = false;
+          child = ChatAgentRuntimeView(
+            kind: '${runtime['kind']}',
+            toolName: '${runtime['toolName'] ?? ''}',
+            body: '${runtime['body'] ?? ''}',
+            text: '${runtime['text'] ?? ''}',
+          );
+        } else {
+          child = ChatText(
+            isISend: _isISend,
+            text: text,
+            patterns: widget.patterns,
+            textScaleFactor: widget.textScaleFactor,
+            onVisibleTrulyText: widget.onVisibleTrulyText,
+          );
+        }
+      }
     } else if (_message.isPictureType) {
       child = widget.mediaItemBuilder?.call(context, _message) ??
           ChatPictureView(
@@ -202,6 +222,15 @@ class _ChatItemViewState extends State<ChatItemView> {
         isISend: _isISend,
         message: _message,
       );
+    } else if (_message.isCustomType) {
+      final info = widget.customTypeBuilder?.call(context, _message);
+      if (info != null) {
+        if (!info.needChatItemContainer) {
+          return info.customView;
+        }
+        isBubbleBg = info.needBubbleBackground;
+        child = info.customView;
+      }
     } else if (_message.isNotificationType) {
       if (_message.contentType == MessageType.groupInfoSetAnnouncementNotification) {
         final map = json.decode(_message.notificationElem!.detail!);

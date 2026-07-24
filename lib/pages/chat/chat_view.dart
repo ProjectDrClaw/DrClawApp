@@ -142,6 +142,45 @@ class ChatPage extends StatelessWidget {
           false,
           false,
         );
+      } else if (viewType == CustomMessageType.toolGuardApproval) {
+        final status = '${data['status'] ?? 'pending'}';
+        final toolParams = <String, dynamic>{};
+        final rawParams = data['toolParams'];
+        if (rawParams is Map) {
+          rawParams.forEach((k, v) => toolParams['$k'] = v);
+        }
+        // 对话内展示完整卡片摘要；操作在弹窗中完成
+        final view = ChatToolGuardApprovalView(
+          toolName: '${data['toolName'] ?? 'tool'}',
+          toolSource: '${data['toolSource'] ?? ''}',
+          severity: '${data['severity'] ?? ''}',
+          findingsCount: data['findingsCount'] is int
+              ? data['findingsCount'] as int
+              : int.tryParse('${data['findingsCount'] ?? 0}') ?? 0,
+          summary: '${data['summary'] ?? ''}',
+          toolParams: toolParams,
+          createdAt: data['createdAt'] is num
+              ? (data['createdAt'] as num).toDouble()
+              : double.tryParse('${data['createdAt'] ?? 0}') ?? 0,
+          timeoutSeconds: data['timeoutSeconds'] is num
+              ? (data['timeoutSeconds'] as num).toDouble()
+              : double.tryParse('${data['timeoutSeconds'] ?? 300}') ?? 300,
+          isGeneralized: data['isGeneralized'] == true,
+          exactTarget: '${data['exactTarget'] ?? ''}',
+          similarTarget: '${data['similarTarget'] ?? ''}',
+          status: status,
+        );
+        return CustomTypeInfo(view, false);
+      } else if (viewType == CustomMessageType.toolCall ||
+          viewType == CustomMessageType.toolResult ||
+          viewType == CustomMessageType.thinking) {
+        final view = ChatAgentRuntimeView(
+          kind: '${data['kind'] ?? ''}',
+          toolName: '${data['toolName'] ?? ''}',
+          body: '${data['body'] ?? ''}',
+          text: '${data['text'] ?? ''}',
+        );
+        return CustomTypeInfo(view, false);
       }
     }
     return null;

@@ -59,6 +59,89 @@ class IntervalDo {
 class IMUtils {
   IMUtils._();
 
+  /// 解析用户发出的 `/approval approve|deny ...` 命令，用于友好渲染。
+  /// 返回 map：`approved` bool、`scope` String?（exact/pattern）、`label` 会话摘要。
+  static Map<String, dynamic>? parseToolGuardCommand(String? text) {
+    final raw = (text ?? '').trim();
+    if (raw.isEmpty || !raw.startsWith('/approval')) return null;
+    final parts = raw.split(RegExp(r'\s+'));
+    if (parts.length < 2) return null;
+    final action = parts[1].toLowerCase();
+    if (action != 'approve' && action != 'deny') return null;
+
+    String? scope;
+    for (final p in parts.skip(2)) {
+      if (p == '--pattern' || p == '--similar') {
+        scope = 'pattern';
+      } else if (p == '--exact') {
+        scope = 'exact';
+      }
+    }
+    if (action == 'approve' && scope == null) {
+      scope = 'exact';
+    }
+
+    final approved = action == 'approve';
+    String label;
+    if (!approved) {
+      label = '[已拒绝]';
+    } else if (scope == 'pattern') {
+      label = '[总是允许]';
+    } else if (scope == 'exact') {
+      label = '[仅本次批准]';
+    } else {
+      label = '[已批准]';
+    }
+    return {
+      'approved': approved,
+      'scope': scope,
+      'label': label,
+    };
+  }
+
+  /// 解析旧版纯文本工具/思考消息（🔧 / ✅ 前缀），兼容历史会话。
+  static Map<String, dynamic>? parseAgentRuntimeText(String? text) {
+    final raw = (text ?? '').trim();
+    if (raw.isEmpty) return null;
+
+    final callMatch = RegExp(
+      r'^(?:🔧\s*)?\*\*(.+?)\*\*\s*\n```\n([\s\S]*?)```\s*$',
+    ).firstMatch(raw);
+    if (callMatch != null && !raw.contains('**:')) {
+      return {
+        'kind': 'tool_call',
+        'toolName': callMatch.group(1)?.trim() ?? 'tool',
+        'body': callMatch.group(2)?.trim() ?? '',
+        'text': '',
+      };
+    }
+
+    final resultMatch = RegExp(
+      r'^(?:✅\s*)?\*\*(.+?)\*\*:\s*(?:\n```\n([\s\S]*?)```)?\s*$',
+    ).firstMatch(raw);
+    if (resultMatch != null) {
+      return {
+        'kind': 'tool_result',
+        'toolName': resultMatch.group(1)?.trim() ?? 'tool',
+        'body': resultMatch.group(2)?.trim() ?? '',
+        'text': '',
+      };
+    }
+
+    if (raw.startsWith('💭') || raw.startsWith('思考：') || raw.startsWith('Thinking:')) {
+      final body = raw
+          .replaceFirst(RegExp(r'^(💭|思考：|Thinking:)\s*'), '')
+          .trim();
+      return {
+        'kind': 'thinking',
+        'toolName': '',
+        'body': '',
+        'text': body.isEmpty ? raw : body,
+      };
+    }
+    return null;
+  }
+
   static Future<CroppedFile?> uCrop(String path) {
     return ImageCropper().cropImage(
       sourcePath: path,
@@ -685,6 +768,22 @@ class IMUtils {
       switch (message.contentType) {
         case MessageType.text:
           content = message.textElem!.content!;
+          final cmd = parseToolGuardCommand(content);
+          if (cmd != null) {
+            content = '${cmd['label']}';
+            break;
+          }
+          final runtime = parseAgentRuntimeText(content);
+          if (runtime != null) {
+            final kind = '${runtime['kind']}';
+            if (kind == 'tool_call') {
+              content = '[工具调用] ${runtime['toolName']}';
+            } else if (kind == 'tool_result') {
+              content = '[工具结果] ${runtime['toolName']}';
+            } else {
+              content = '[思考过程]';
+            }
+          }
           break;
         case MessageType.atText:
           content = message.atTextElem?.text ?? '';
@@ -724,6 +823,18 @@ class IMUtils {
               break;
             case CustomMessageType.groupDisbanded:
               content = StrRes.groupDisbanded;
+              break;
+            case CustomMessageType.toolGuardApproval:
+              content = '[工具审批]';
+              break;
+            case CustomMessageType.toolCall:
+              content = '[工具调用]';
+              break;
+            case CustomMessageType.toolResult:
+              content = '[工具结果]';
+              break;
+            case CustomMessageType.thinking:
+              content = '[思考过程]';
               break;
             default:
               content = '[${StrRes.unsupportedMessage}]';
@@ -806,6 +917,66 @@ class IMUtils {
               case CustomMessageType.removedFromGroup:
               case CustomMessageType.groupDisbanded:
                 return {'viewType': customType};
+              case CustomMessageType.toolGuardApproval:
+                {
+                  final data = map['data'];
+                  if (data is! Map) {
+                    return null;
+                  }
+                  var status = '${data['status'] ?? 'pending'}';
+                  final localStatus = _toolGuardStatusFromLocalEx(message.localEx);
+                  if (localStatus != null && localStatus.isNotEmpty) {
+                    status = localStatus;
+                  }
+                  final toolParamsRaw = data['toolParams'];
+                  final toolParams = <String, dynamic>{};
+                  if (toolParamsRaw is Map) {
+                    toolParamsRaw.forEach((k, v) {
+                      toolParams['$k'] = v;
+                    });
+                  }
+                  return {
+                    'viewType': CustomMessageType.toolGuardApproval,
+                    'requestId': '${data['requestId'] ?? ''}',
+                    'toolName': '${data['toolName'] ?? 'tool'}',
+                    'toolSource': '${data['toolSource'] ?? ''}',
+                    'severity': '${data['severity'] ?? ''}',
+                    'findingsCount': int.tryParse('${data['findingsCount'] ?? 0}') ?? 0,
+                    'summary': '${data['summary'] ?? ''}',
+                    'toolParams': toolParams,
+                    'createdAt':
+                        double.tryParse('${data['createdAt'] ?? 0}') ?? 0.0,
+                    'timeoutSeconds':
+                        double.tryParse('${data['timeoutSeconds'] ?? 300}') ??
+                            300.0,
+                    'isGeneralized': data['isGeneralized'] == true ||
+                        '${data['isGeneralized']}' == 'true',
+                    'exactTarget': '${data['exactTarget'] ?? ''}',
+                    'similarTarget': '${data['similarTarget'] ?? ''}',
+                    'status': status,
+                  };
+                }
+              case CustomMessageType.toolCall:
+              case CustomMessageType.toolResult:
+              case CustomMessageType.thinking:
+                {
+                  final data = map['data'];
+                  if (data is! Map) {
+                    return null;
+                  }
+                  final kind = customType == CustomMessageType.toolCall
+                      ? 'tool_call'
+                      : (customType == CustomMessageType.toolResult
+                          ? 'tool_result'
+                          : 'thinking');
+                  return {
+                    'viewType': customType,
+                    'kind': '${data['kind'] ?? kind}',
+                    'toolName': '${data['toolName'] ?? 'tool'}',
+                    'body': '${data['body'] ?? ''}',
+                    'text': '${data['text'] ?? ''}',
+                  };
+                }
             }
           }
       }
@@ -814,6 +985,19 @@ class IMUtils {
       Logger.print('Stack trace:\n $s');
     }
     return null;
+  }
+
+  /// 从消息 localEx 读取工具审批本地状态（点按钮后持久化）
+  static String? _toolGuardStatusFromLocalEx(String? localEx) {
+    if (localEx == null || localEx.isEmpty) return null;
+    try {
+      final map = json.decode(localEx);
+      if (map is! Map) return null;
+      final status = map['toolGuardStatus'];
+      return status == null ? null : '$status';
+    } catch (_) {
+      return null;
+    }
   }
 
   static Map<String, String> getAtMapping(

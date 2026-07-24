@@ -114,6 +114,14 @@ class CustomMessageType {
   static const deletedByFriend = 911;
   static const removedFromGroup = 912;
   static const groupDisbanded = 913;
+
+  /// Agent Tool Guard 审批卡片（与 DrClawAgent OpenIM CUSTOM_TYPE 对齐）
+  static const toolGuardApproval = 920;
+
+  /// 工具调用 / 工具结果 / 思考过程卡片
+  static const toolCall = 921;
+  static const toolResult = 922;
+  static const thinking = 923;
 }
 
 extension PublicUserInfoExt on PublicUserInfo {
